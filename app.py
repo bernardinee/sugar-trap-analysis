@@ -3,7 +3,6 @@ import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 from collections import Counter
-import math
 
 st.set_page_config(
     page_title="Sugar Trap | Helix CPG Partners",
@@ -56,6 +55,7 @@ CATEGORY_COLORS = {
 SUGAR_THRESHOLD   = 15
 PROTEIN_THRESHOLD = 10
 
+
 @st.cache_data(show_spinner="Loading dataset...")
 def load_data():
     df  = pd.read_csv("sugar_trap_clean_data.csv", low_memory=False)
@@ -80,8 +80,8 @@ with st.sidebar:
     )
 
     st.markdown("---")
-    sugar_max = st.slider("Max Sugar (g/100g)", 0, 100, 100, 5)
-    protein_min = st.slider("Min Protein (g/100g)", 0, 50, 0, 2)
+    sugar_max   = st.slider("Max Sugar (g/100g)",   0, 100, 100, 5)
+    protein_min = st.slider("Min Protein (g/100g)", 0,  50,   0, 2)
 
     st.markdown("---")
     sample_size = st.slider("Plot Sample Size (per category)", 100, 800, 400, 100)
@@ -104,7 +104,7 @@ df_filtered = df[
     (df["primary_category"].isin(selected_cats)) &
     (df["sugars_100g"]   <= sugar_max) &
     (df["proteins_100g"] >= protein_min)
-]
+].copy()
 
 blue_ocean = df_filtered[
     (df_filtered["proteins_100g"] >= PROTEIN_THRESHOLD) &
@@ -119,7 +119,7 @@ with kpi2:
     st.metric("In Blue Ocean Quadrant", f"{len(blue_ocean):,}",
               delta=f"{pct_bo:.1f}% of selection")
 with kpi3:
-    st.metric("Avg Sugar (g/100g)", f"{df_filtered['sugars_100g'].mean():.1f}g")
+    st.metric("Avg Sugar (g/100g)",   f"{df_filtered['sugars_100g'].mean():.1f}g")
 with kpi4:
     st.metric("Avg Protein (g/100g)", f"{df_filtered['proteins_100g'].mean():.1f}g")
 
@@ -137,6 +137,12 @@ df_plot = (
     .copy()
 )
 
+# Round tooltip columns so hover values are clean
+df_plot["sugar_display"]   = df_plot["sugars_100g"].round(1)
+df_plot["protein_display"] = df_plot["proteins_100g"].round(1)
+df_plot["fat_display"]     = df_plot["fat_100g"].round(1)
+df_plot["fiber_display"]   = df_plot["fiber_100g"].round(1)
+
 fig_scatter = px.scatter(
     df_plot,
     x="sugars_100g",
@@ -144,18 +150,24 @@ fig_scatter = px.scatter(
     color="primary_category",
     hover_name="product_name",
     hover_data={
-        "sugars_100g":      ":.1f",
-        "proteins_100g":    ":.1f",
-        "fat_100g":         ":.1f",
-        "fiber_100g":       ":.1f",
+        "sugars_100g":      False,
+        "proteins_100g":    False,
         "primary_category": False,
+        "sugar_display":    True,
+        "protein_display":  True,
+        "fat_display":      True,
+        "fiber_display":    True,
     },
     color_discrete_map=CATEGORY_COLORS,
     opacity=0.65,
     labels={
-        "sugars_100g":      "Sugar per 100g (g)",
-        "proteins_100g":    "Protein per 100g (g)",
+        "sugars_100g":      "Sugar (g/100g)",
+        "proteins_100g":    "Protein (g/100g)",
         "primary_category": "Category",
+        "sugar_display":    "Sugar",
+        "protein_display":  "Protein",
+        "fat_display":      "Fat",
+        "fiber_display":    "Fiber",
     },
     template="plotly_white",
 )
@@ -164,8 +176,12 @@ fig_scatter.add_vline(x=SUGAR_THRESHOLD,   line_dash="dash", line_color="#999", 
 fig_scatter.add_hline(y=PROTEIN_THRESHOLD, line_dash="dash", line_color="#999", line_width=1.2)
 
 fig_scatter.add_shape(
-    type="rect", x0=0, x1=SUGAR_THRESHOLD, y0=PROTEIN_THRESHOLD, y1=70,
-    fillcolor="rgba(59,139,212,0.08)", line_width=0, layer="below"
+    type="rect",
+    x0=0, x1=SUGAR_THRESHOLD,
+    y0=PROTEIN_THRESHOLD, y1=70,
+    fillcolor="rgba(59,139,212,0.08)",
+    line_width=0,
+    layer="below",
 )
 
 fig_scatter.add_annotation(
@@ -232,10 +248,11 @@ fig_lollipop = go.Figure()
 for i, (cat, score) in enumerate(zip(cats_s, scores_s)):
     fig_lollipop.add_shape(
         type="line", x0=0, x1=score, y0=i, y1=i,
-        line=dict(color=bar_colors[i], width=2.5)
+        line=dict(color=bar_colors[i], width=2.5),
     )
 fig_lollipop.add_trace(go.Scatter(
-    x=scores_s, y=cats_s,
+    x=scores_s,
+    y=cats_s,
     mode="markers+text",
     marker=dict(size=15, color=bar_colors, line=dict(color="white", width=2)),
     text=[f"{s:.2f}" for s in scores_s],
@@ -300,7 +317,8 @@ ingr_labels = [k.title() for k, _ in top_ingr]
 ingr_vals   = [v for _, v in top_ingr]
 
 fig_ingr = go.Figure(go.Bar(
-    x=ingr_labels, y=ingr_vals,
+    x=ingr_labels,
+    y=ingr_vals,
     marker=dict(
         color=ingr_vals,
         colorscale=[[0, "#B5D4F4"], [1, "#0C447C"]],
