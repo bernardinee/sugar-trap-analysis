@@ -1,67 +1,69 @@
 # The Sugar Trap — Market Gap Analysis
-**Helix CPG Partners · Strategic Food & Beverage Consultancy**
 
----
+**Helix CPG Partners · Strategic Food \& Beverage Consultancy**
+
+\---
 
 ## A. Executive Summary
 
-An analysis of 150,000 products from the Open Food Facts database reveals a significant and consistent market gap in the global snack aisle: the high-protein, low-sugar quadrant is dramatically under-served across every major snack category. Less than 12% of snack products meet both a protein threshold of 10g/100g and a sugar ceiling of 15g/100g, despite growing consumer demand for functional, health-forward snacking. The Bars & Granola category presents the strongest opportunity, combining a large market footprint with the widest supply gap relative to demonstrable consumer interest. A product targeting approximately 15g of protein and under 8g of sugar per 100g — formulated around whey, peanut, or soy as the primary protein source — would occupy a position where virtually no current product competes at scale.
+An analysis of 150,000 products from the Open Food Facts database reveals a significant and consistent market gap in the global snack aisle: the high-protein, low-sugar quadrant is dramatically under-served across every major snack category. Less than 12% of snack products meet both a protein threshold of 10g/100g and a sugar ceiling of 15g/100g, despite growing consumer demand for functional, health-forward snacking. The Bars \& Granola category presents the strongest opportunity, combining a large market footprint with the widest supply gap relative to demonstrable consumer interest. A product targeting approximately 15g of protein and under 8g of sugar per 100g — formulated around whey, peanut, or soy as the primary protein source — would occupy a position where virtually no current product competes at scale.
 
----
+\---
 
 ## B. Project Links
 
-| Deliverable | Link |
-|---|---|
-| Notebook (Google Colab) | _Add link — set sharing to "Anyone with the link can view"_ |
-| Dashboard (Streamlit Cloud) | _Add link — verify in Incognito before submitting_ |
-| Presentation (PDF/Slides) | _Add link — set sharing to "Anyone with the link can view"_ |
-| Video Walkthrough (Optional) | _Add YouTube link_ |
+|Deliverable|Link|
+|-|-|
+|Notebook (Google Colab)|[https://colab.research.google.com/drive/1KHXKwOCir3t7t6Uf28tv1I0picA7l\_XF?usp=sharing](https://colab.research.google.com/drive/1KHXKwOCir3t7t6Uf28tv1I0picA7l_XF?usp=sharing)|
+|Dashboard (Streamlit Cloud)|*Add link — verify in Incognito before submitting*|
+|Presentation (PDF/Slides)|*Add link — set sharing to "Anyone with the link can view"*|
+|Video Walkthrough (Optional)|*Add YouTube link*|
 
 > All links tested in Incognito mode and publicly accessible without login.
 
----
+\---
 
 ## C. Technical Explanation
 
 ### Data Cleaning
 
-The raw dataset was loaded in 50,000-row chunks capped at 150,000 rows to stay within Colab's memory limits, selecting only the 10 columns relevant to this analysis. Rows missing `sugars_100g` or `proteins_100g` were dropped outright since these are the two axes the entire analysis depends on. Rows missing `product_name` were also removed as unnamed products have no actionable value for a product team. All nutrient columns were cast to numeric and filtered to the physically possible range of 0–100g per 100g of product — anything outside this range is a data entry error by definition. Fat and fiber nulls were filled with zero since these are secondary variables used for context rather than classification. A 3×IQR filter was then applied to sugars and proteins to remove extreme values that, while technically within range, sit far enough from the distribution to distort chart axes and cluster analysis.
+The raw dataset was loaded in 50,000-row chunks capped at 150,000 rows to stay within Colab's memory limits, selecting only the 10 columns relevant to this analysis. Rows missing `sugars\_100g` or `proteins\_100g` were dropped outright since these are the two axes the entire analysis depends on. Rows missing `product\_name` were also removed as unnamed products have no actionable value for a product team. All nutrient columns were cast to numeric and filtered to the physically possible range of 0–100g per 100g of product — anything outside this range is a data entry error by definition. Fat and fiber nulls were filled with zero since these are secondary variables used for context rather than classification. A 3×IQR filter was then applied to sugars and proteins to remove extreme values that, while technically within range, sit far enough from the distribution to distort chart axes and cluster analysis.
 
 ### Candidate's Choice — Market Opportunity Score
 
 The scatter plot makes the gap visible but does not tell a product manager which category to prioritise. I built a composite **Market Opportunity Score** that ranks each category on three weighted signals:
 
-- **Gap Size (50%)** — what fraction of the category falls outside the Blue Ocean quadrant? A score of 1.0 means zero healthy products currently exist in that space.
-- **Demand Proxy (30%)** — the 80th-percentile protein value in the category, normalised to [0,1]. This captures whether consumers are already occasionally buying protein-rich products here, which de-risks a new launch.
-- **Market Size (20%)** — log-scaled product count relative to the largest category. A bigger category means more shelf space, more retail partners, and more upside.
+* **Gap Size (50%)** — what fraction of the category falls outside the Blue Ocean quadrant? A score of 1.0 means zero healthy products currently exist in that space.
+* **Demand Proxy (30%)** — the 80th-percentile protein value in the category, normalised to \[0,1]. This captures whether consumers are already occasionally buying protein-rich products here, which de-risks a new launch.
+* **Market Size (20%)** — log-scaled product count relative to the largest category. A bigger category means more shelf space, more retail partners, and more upside.
 
 Formula: `Score = (gap × 0.50) + (demand × 0.30) + (size × 0.20)`. This produces a ranked output that can go directly onto a strategy slide without requiring the audience to interpret a scatter plot. The weighting places the supply gap as the primary driver — consistent with the brief's Blue Ocean framing — while using demand and size as filters that prevent the model from surfacing small, structurally unattractive niches.
 
----
+\---
 
 ## Repository Structure
 
 ```
-├── Sugar_Trap_Analysis.ipynb        # Main analysis notebook
-├── Sugar_Trap_Analysis.html         # Notebook HTML export
+├── Sugar\_Trap\_Analysis.ipynb        # Main analysis notebook
+├── Sugar\_Trap\_Analysis.html         # Notebook HTML export
 ├── app.py                           # Streamlit dashboard
 ├── requirements.txt                 # Python dependencies
-├── sugar_trap_clean_data.csv        # Generated by notebook
-├── opportunity_scores.csv           # Generated by notebook
+├── sugar\_trap\_clean\_data.csv        # Generated by notebook
+├── opportunity\_scores.csv           # Generated by notebook
 └── README.md
 ```
 
 > The raw Open Food Facts CSV is excluded via `.gitignore` and downloaded automatically on first run.
 
----
+\---
 
 ## Running Locally
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/sugar-trap-analysis.git
+git clone https://github.com/YOUR\_USERNAME/sugar-trap-analysis.git
 cd sugar-trap-analysis
 pip install -r requirements.txt
-jupyter notebook Sugar_Trap_Analysis.ipynb
+jupyter notebook Sugar\_Trap\_Analysis.ipynb
 streamlit run app.py
 ```
+
