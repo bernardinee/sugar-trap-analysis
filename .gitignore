@@ -1,0 +1,19 @@
+# Raw Open Food Facts dataset — too large to commit (3GB+)
+en.openfoodfacts.org.products.csv
+openfoodfacts_products.csv
+
+# Generated chart files — recreated by running the notebook
+*.png
+nutrient_matrix_interactive.html
+protein_sources.html
+opportunity_score.html
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+.ipynb_checkpoints/
+
+# OS files
+.DS_Store
+Thumbs.db
