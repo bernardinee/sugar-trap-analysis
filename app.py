@@ -1,4 +1,5 @@
 import streamlit as st
+import streamlit.components.v1 as components
 import pandas as pd
 import plotly.graph_objects as go
 from collections import Counter
@@ -9,6 +10,41 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="expanded",
 )
+
+# Remove the keyboard_double_arrow text node — it is rendered by Streamlit
+# before CSS loads so JS is the only reliable way to remove it
+components.html("""
+<script>
+(function() {
+  function removeKeyboardText() {
+    var sidebar = parent.document.querySelector('[data-testid="stSidebar"]');
+    if (!sidebar) return;
+    var walker = parent.document.createTreeWalker(
+      sidebar, NodeFilter.SHOW_TEXT, null, false
+    );
+    var node;
+    while (node = walker.nextNode()) {
+      if (node.nodeValue && node.nodeValue.includes('keyboard')) {
+        node.nodeValue = '';
+      }
+    }
+    // Also hide any element whose text content is only the keyboard string
+    var allEls = sidebar.querySelectorAll('*');
+    allEls.forEach(function(el) {
+      if (el.childNodes.length === 1 &&
+          el.childNodes[0].nodeType === 3 &&
+          el.textContent.trim().startsWith('keyboard')) {
+        el.style.display = 'none';
+      }
+    });
+  }
+  // Run immediately and again after a short delay to catch late renders
+  removeKeyboardText();
+  setTimeout(removeKeyboardText, 500);
+  setTimeout(removeKeyboardText, 1500);
+})();
+</script>
+""", height=0)
 
 st.markdown("""
 <style>
