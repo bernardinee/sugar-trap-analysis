@@ -41,13 +41,15 @@ html, body, .stApp, [class*="css"] {
 [data-testid="stDecoration"],
 [data-testid="stStatusWidget"],
 .stDeployButton,
-button[kind="header"],
-[data-testid="collapsedControl"] svg,
-section[data-testid="stSidebar"] > div:first-child > div:first-child > div:first-child,
-.st-emotion-cache-zq5wmm,
-.st-emotion-cache-1dp5vir,
-[class*="viewerBadge"],
-[class*="keyboard"] { display: none !important; visibility: hidden !important; }
+[class*="viewerBadge"] { display: none !important; visibility: hidden !important; }
+
+/* Keep sidebar toggle fully visible and functional */
+[data-testid="stSidebarCollapseButton"],
+[data-testid="collapsedControl"] {
+  display: flex !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+}
 
 .block-container { padding: 0 !important; max-width: 100% !important; }
 
