@@ -51,6 +51,26 @@ html, body, .stApp, [class*="css"] {
   opacity: 1 !important;
 }
 
+/* Hide the keyboard_double_ artifact text Streamlit renders at top of sidebar */
+[data-testid="stSidebar"] > div > div > div > div:first-child:not([class*="block"]) {
+  display: none !important;
+}
+[data-testid="stSidebarUserContent"] ~ div,
+[data-testid="stSidebar"] span[data-testid="stMarkdownContainer"]:empty,
+[data-testid="stSidebar"] > div:first-child > div:first-child > div:first-child > div:first-child {
+  display: none !important;
+}
+/* Catch the raw text node containing keyboard icon */
+[aria-label*="keyboard"],
+[class*="keyboard_double"],
+[data-testid*="keyboard"] {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+  overflow: hidden !important;
+  position: absolute !important;
+}
+
 .block-container { padding: 0 !important; max-width: 100% !important; }
 
 /* Sidebar */
@@ -342,6 +362,7 @@ fig.update_layout(
     margin=dict(l=60, r=40, t=20, b=60),
     plot_bgcolor=PLOT_BG, paper_bgcolor=PAPER_BG,
     height=540,
+    autosize=True,
 )
 
 st.markdown("<div style='padding:0 3rem;'>", unsafe_allow_html=True)
