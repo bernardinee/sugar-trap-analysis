@@ -27,7 +27,6 @@ st.markdown("""
   --gold-lt:  #F5EDD5;
   --green:    #2D6A4F;
   --green-lt: #D8EFE4;
-  --red:      #9B2226;
 }
 
 html, body, .stApp, [class*="css"] {
@@ -36,18 +35,32 @@ html, body, .stApp, [class*="css"] {
   color: var(--ink);
 }
 
-/* Hide Streamlit chrome */
-#MainMenu, footer, header { visibility: hidden; }
+/* Hide ALL Streamlit chrome including the keyboard icon */
+#MainMenu, footer, header,
+[data-testid="stToolbar"],
+[data-testid="stDecoration"],
+[data-testid="stStatusWidget"],
+.stDeployButton,
+button[kind="header"],
+[data-testid="collapsedControl"] svg,
+section[data-testid="stSidebar"] > div:first-child > div:first-child > div:first-child,
+.st-emotion-cache-zq5wmm,
+.st-emotion-cache-1dp5vir,
+[class*="viewerBadge"],
+[class*="keyboard"] { display: none !important; visibility: hidden !important; }
+
 .block-container { padding: 0 !important; max-width: 100% !important; }
 
 /* Sidebar */
 [data-testid="stSidebar"] {
   background-color: var(--white) !important;
   border-right: 1px solid var(--border) !important;
-  padding: 0 !important;
 }
 [data-testid="stSidebar"] > div { padding: 2rem 1.5rem !important; }
-[data-testid="stSidebar"] * { color: var(--ink) !important; font-family: 'IBM Plex Sans', sans-serif !important; }
+[data-testid="stSidebar"] * {
+  color: var(--ink) !important;
+  font-family: 'IBM Plex Sans', sans-serif !important;
+}
 [data-testid="stSidebar"] label {
   font-size: 0.7rem !important;
   letter-spacing: 0.1em !important;
@@ -55,9 +68,8 @@ html, body, .stApp, [class*="css"] {
   color: var(--ink-dim) !important;
   font-weight: 500 !important;
 }
-[data-testid="stSidebar"] .stSlider [data-testid="stThumbValue"] { color: var(--gold) !important; }
 
-/* Multiselect */
+/* Multiselect tags */
 [data-testid="stMultiSelect"] span[data-baseweb="tag"] {
   background-color: var(--gold-lt) !important;
   border: 1px solid var(--gold) !important;
@@ -66,13 +78,20 @@ html, body, .stApp, [class*="css"] {
   border-radius: 2px !important;
 }
 
-/* Metric override */
-[data-testid="metric-container"] { background: transparent !important; border: none !important; padding: 0 !important; }
+/* Slider thumb colour */
+[data-testid="stSlider"] [data-testid="stThumbValue"] {
+  color: var(--gold) !important;
+}
 
-/* Dataframe */
-[data-testid="stDataFrame"] iframe { border: 1px solid var(--border) !important; }
+/* Remove default metric styling */
+[data-testid="metric-container"] {
+  background: transparent !important;
+  border: none !important;
+  padding: 0 !important;
+}
 </style>
 """, unsafe_allow_html=True)
+
 
 # ── Constants ─────────────────────────────────────────────
 CATEGORY_COLORS = {
@@ -94,109 +113,175 @@ GRID_COLOR = "#EDEAE3"
 FONT_COLOR = "#8A8680"
 TEXT_COLOR = "#1C1B18"
 
+PROTEIN_KEYWORDS = [
+    "whey", "peanut", "soy", "soya", "almond", "cashew",
+    "protein", "egg", "milk protein", "casein", "hemp",
+    "pea protein", "sunflower seed", "chia", "quinoa",
+]
+
+
 # ── Data ──────────────────────────────────────────────────
-@st.cache_data(show_spinner="Loading...")
+@st.cache_data(show_spinner="Loading data...")
 def load_data():
     df  = pd.read_csv("sugar_trap_clean_data.csv", low_memory=False)
     opp = pd.read_csv("opportunity_scores.csv", index_col=0)
     return df, opp
 
 df, opp_df = load_data()
+all_cats = sorted(df["primary_category"].unique().tolist())
+
 
 # ── Sidebar ───────────────────────────────────────────────
 with st.sidebar:
     st.markdown("""
-    <div style="margin-bottom:1.5rem;">
-      <div style="font-family:'Playfair Display',serif;font-size:1.3rem;color:#1C1B18;font-weight:600;">Sugar Trap</div>
-      <div style="font-size:0.68rem;letter-spacing:0.12em;text-transform:uppercase;color:#B8860B;margin-top:2px;">Helix CPG Partners</div>
+    <div style="margin-bottom:1.8rem;padding-bottom:1.2rem;border-bottom:1px solid #DDD9CF;">
+      <div style="font-family:'Playfair Display',serif;font-size:1.25rem;color:#1C1B18;font-weight:600;line-height:1.2;">Sugar Trap</div>
+      <div style="font-size:0.65rem;letter-spacing:0.14em;text-transform:uppercase;color:#B8860B;margin-top:4px;">Helix CPG Partners</div>
     </div>
     """, unsafe_allow_html=True)
 
-    all_cats = sorted(df["primary_category"].unique().tolist())
-    selected_cats = st.multiselect("Categories", options=all_cats, default=all_cats)
-    st.markdown("<div style='margin:0.8rem 0;border-top:1px solid #DDD9CF;'></div>", unsafe_allow_html=True)
-    sugar_max   = st.slider("Max Sugar  g/100g",   0, 100, 100, 5)
-    protein_min = st.slider("Min Protein  g/100g", 0,  50,   0, 2)
-    st.markdown("<div style='margin:0.8rem 0;border-top:1px solid #DDD9CF;'></div>", unsafe_allow_html=True)
-    sample_size = st.slider("Sample size / category", 100, 800, 400, 100)
-    st.markdown("<div style='margin:0.8rem 0;border-top:1px solid #DDD9CF;'></div>", unsafe_allow_html=True)
-    st.markdown("<div style='font-size:0.68rem;letter-spacing:0.08em;color:#C8C4BA;line-height:1.6;'>SOURCE<br>Open Food Facts<br>openfoodfacts.org</div>", unsafe_allow_html=True)
+    selected_cats = st.multiselect(
+        "Categories",
+        options=all_cats,
+        default=all_cats,
+        key="sel_cats",
+    )
 
-# ── Filter data ───────────────────────────────────────────
-mask = (
+    st.markdown("<div style='margin:1rem 0;border-top:1px solid #EFECE5;'></div>", unsafe_allow_html=True)
+
+    sugar_max = st.slider(
+        "Max Sugar  g/100g",
+        min_value=0, max_value=100, value=100, step=5,
+        key="sugar_max",
+    )
+    protein_min = st.slider(
+        "Min Protein  g/100g",
+        min_value=0, max_value=50, value=0, step=2,
+        key="protein_min",
+    )
+
+    st.markdown("<div style='margin:1rem 0;border-top:1px solid #EFECE5;'></div>", unsafe_allow_html=True)
+
+    sample_size = st.slider(
+        "Sample size / category",
+        min_value=100, max_value=800, value=400, step=100,
+        key="sample_size",
+    )
+
+    st.markdown("""
+    <div style="margin-top:1.5rem;padding-top:1rem;border-top:1px solid #EFECE5;
+                font-size:0.65rem;letter-spacing:0.08em;color:#C8C4BA;line-height:1.8;">
+      SOURCE<br>Open Food Facts<br>openfoodfacts.org
+    </div>
+    """, unsafe_allow_html=True)
+
+
+# ── Guard: no categories selected ────────────────────────
+if not selected_cats:
+    st.markdown("""
+    <div style="padding:4rem 3rem;text-align:center;">
+      <div style="font-family:'Playfair Display',serif;font-size:1.4rem;color:#1C1B18;margin-bottom:0.5rem;">No categories selected</div>
+      <div style="font-size:0.9rem;color:#8A8680;">Use the sidebar to select at least one snack category.</div>
+    </div>
+    """, unsafe_allow_html=True)
+    st.stop()
+
+
+# ── Filter ────────────────────────────────────────────────
+df_filtered = df[
     df["primary_category"].isin(selected_cats) &
     (df["sugars_100g"]   <= sugar_max) &
     (df["proteins_100g"] >= protein_min)
-)
-df_filtered = df[mask].copy().reset_index(drop=True)
+].copy().reset_index(drop=True)
 
 blue_ocean = df_filtered[
     (df_filtered["proteins_100g"] >= PROTEIN_THRESHOLD) &
     (df_filtered["sugars_100g"]   <= SUGAR_THRESHOLD)
 ].copy().reset_index(drop=True)
 
-pct_bo = len(blue_ocean) / max(len(df_filtered), 1) * 100
+pct_bo  = len(blue_ocean) / max(len(df_filtered), 1) * 100
+avg_sug = df_filtered["sugars_100g"].mean()   if len(df_filtered) > 0 else 0
+avg_pro = df_filtered["proteins_100g"].mean() if len(df_filtered) > 0 else 0
 
-# ── Sample for scatter — done BEFORE loop, no groupby ─────
+# Sample for scatter — plain loop, no groupby
 pieces = []
 for cat in selected_cats:
     chunk = df_filtered[df_filtered["primary_category"] == cat]
     if len(chunk) == 0:
         continue
-    n = min(len(chunk), sample_size)
-    pieces.append(chunk.sample(n=n, random_state=42))
-df_plot = pd.concat(pieces, ignore_index=True) if pieces else df_filtered.head(0)
+    pieces.append(chunk.sample(n=min(len(chunk), sample_size), random_state=42))
+df_plot = pd.concat(pieces, ignore_index=True) if pieces else pd.DataFrame()
 
-# ── Main layout wrapper ───────────────────────────────────
+
+# ══════════════════════════════════════════════════════════
+# PAGE
+# ══════════════════════════════════════════════════════════
+
+# ── Header ────────────────────────────────────────────────
 st.markdown("""
-<div style="padding:2.5rem 3rem 0 3rem;">
-  <div style="font-size:0.68rem;letter-spacing:0.18em;text-transform:uppercase;color:#B8860B;margin-bottom:0.4rem;font-weight:500;">
+<div style="padding:2.5rem 3rem 1.5rem 3rem;border-bottom:1px solid #DDD9CF;">
+  <div style="font-size:0.65rem;letter-spacing:0.2em;text-transform:uppercase;
+              color:#B8860B;margin-bottom:0.5rem;font-weight:500;">
     Market Intelligence · Snack Category Analysis
   </div>
-  <div style="font-family:'Playfair Display',serif;font-size:2.8rem;color:#1C1B18;line-height:1.1;margin-bottom:0.6rem;">
+  <div style="font-family:'Playfair Display',serif;font-size:2.8rem;
+              color:#1C1B18;line-height:1.1;margin-bottom:0.6rem;">
     The <em style="color:#B8860B;">Sugar Trap</em>
   </div>
-  <div style="font-size:0.92rem;color:#8A8680;max-width:580px;line-height:1.65;margin-bottom:2rem;">
+  <div style="font-size:0.9rem;color:#8A8680;max-width:560px;line-height:1.7;">
     Mapping the whitespace between consumer health demand and current product supply —
     where is the Blue Ocean in the snack aisle?
   </div>
 </div>
 """, unsafe_allow_html=True)
 
+
 # ── KPI row ───────────────────────────────────────────────
-st.markdown("<div style='padding:0 3rem;'>", unsafe_allow_html=True)
+st.markdown("<div style='padding:1.5rem 3rem 0 3rem;'>", unsafe_allow_html=True)
 k1, k2, k3, k4 = st.columns(4)
 
-def kpi(col, label, value, sub=None, sub_color="#2D6A4F"):
+def kpi_card(col, label, value, sub=None, sub_color="#2D6A4F"):
+    sub_html = f'<div style="font-size:0.78rem;color:{sub_color};margin-top:5px;">{sub}</div>' if sub else ""
     with col:
-        sub_html = f'<div style="font-size:0.8rem;color:{sub_color};margin-top:4px;">{sub}</div>' if sub else ""
         st.markdown(f"""
-        <div style="background:#fff;border:1px solid #DDD9CF;border-top:2px solid #B8860B;padding:1.3rem 1.5rem 1.1rem;">
-          <div style="font-size:0.68rem;letter-spacing:0.1em;text-transform:uppercase;color:#8A8680;margin-bottom:0.5rem;">{label}</div>
-          <div style="font-family:'Playfair Display',serif;font-size:2.2rem;color:#1C1B18;line-height:1;">{value}</div>
+        <div style="background:#fff;border:1px solid #DDD9CF;border-top:2px solid #B8860B;
+                    padding:1.3rem 1.5rem 1.1rem;">
+          <div style="font-size:0.65rem;letter-spacing:0.1em;text-transform:uppercase;
+                      color:#8A8680;margin-bottom:0.5rem;">{label}</div>
+          <div style="font-family:'Playfair Display',serif;font-size:2.1rem;
+                      color:#1C1B18;line-height:1;">{value}</div>
           {sub_html}
         </div>""", unsafe_allow_html=True)
 
-kpi(k1, "Products Analysed",     f"{len(df_filtered):,}")
-kpi(k2, "In Blue Ocean Quadrant",f"{len(blue_ocean):,}",  sub=f"↑ {pct_bo:.1f}% of selection")
-kpi(k3, "Avg Sugar",             f"{df_filtered['sugars_100g'].mean():.1f}<span style='font-size:0.9rem;color:#8A8680;'>g/100g</span>")
-kpi(k4, "Avg Protein",           f"{df_filtered['proteins_100g'].mean():.1f}<span style='font-size:0.9rem;color:#8A8680;'>g/100g</span>")
+kpi_card(k1, "Products Analysed",      f"{len(df_filtered):,}")
+kpi_card(k2, "In Blue Ocean Quadrant", f"{len(blue_ocean):,}",
+         sub=f"↑ {pct_bo:.1f}% of selection")
+kpi_card(k3, "Avg Sugar",
+         f'{avg_sug:.1f}<span style="font-size:0.85rem;color:#8A8680;"> g/100g</span>')
+kpi_card(k4, "Avg Protein",
+         f'{avg_pro:.1f}<span style="font-size:0.85rem;color:#8A8680;"> g/100g</span>')
 
 st.markdown("</div>", unsafe_allow_html=True)
-st.markdown("<div style='margin:2rem 3rem;border-top:1px solid #DDD9CF;'></div>", unsafe_allow_html=True)
+st.markdown("<div style='margin:1.8rem 3rem;border-top:1px solid #DDD9CF;'></div>", unsafe_allow_html=True)
+
 
 # ── Section 01: Scatter ───────────────────────────────────
 st.markdown("""
-<div style="padding:0 3rem;">
-  <div style="font-size:0.68rem;letter-spacing:0.16em;text-transform:uppercase;color:#B8860B;font-weight:500;margin-bottom:0.3rem;">Section 01</div>
-  <div style="font-family:'Playfair Display',serif;font-size:1.8rem;color:#1C1B18;margin-bottom:0.3rem;">Nutrient Matrix</div>
-  <div style="font-size:0.85rem;color:#8A8680;font-style:italic;margin-bottom:1rem;">Sugar (x) vs. Protein (y) — each point is one product. Click legend entries to isolate categories.</div>
+<div style="padding:0 3rem 0.5rem 3rem;">
+  <div style="font-size:0.65rem;letter-spacing:0.16em;text-transform:uppercase;
+              color:#B8860B;font-weight:500;margin-bottom:0.3rem;">Section 01</div>
+  <div style="font-family:'Playfair Display',serif;font-size:1.75rem;
+              color:#1C1B18;margin-bottom:0.25rem;">Nutrient Matrix</div>
+  <div style="font-size:0.83rem;color:#8A8680;font-style:italic;">
+    Sugar (x) vs. Protein (y) — each point is one product.
+    Click legend entries to isolate categories.
+  </div>
 </div>
 """, unsafe_allow_html=True)
 
-with st.container():
-    fig = go.Figure()
+fig = go.Figure()
 
+if not df_plot.empty:
     for cat, color in CATEGORY_COLORS.items():
         if cat not in selected_cats:
             continue
@@ -209,7 +294,8 @@ with st.container():
             mode="markers",
             name=cat,
             marker=dict(color=color, size=5, opacity=0.65, line=dict(width=0)),
-            customdata=sub[["product_name","sugars_100g","proteins_100g","fat_100g","fiber_100g"]].values.tolist(),
+            customdata=sub[["product_name","sugars_100g",
+                            "proteins_100g","fat_100g","fiber_100g"]].values.tolist(),
             hovertemplate=(
                 "<b>%{customdata[0]}</b><br>"
                 "Sugar: %{customdata[1]:.1f}g<br>"
@@ -220,37 +306,48 @@ with st.container():
             ),
         ))
 
-    fig.add_vline(x=SUGAR_THRESHOLD,   line_dash="dot", line_color="#B8860B", line_width=1)
-    fig.add_hline(y=PROTEIN_THRESHOLD, line_dash="dot", line_color="#B8860B", line_width=1)
-    fig.add_shape(type="rect", x0=0, x1=SUGAR_THRESHOLD, y0=PROTEIN_THRESHOLD, y1=70,
-                  fillcolor="rgba(184,134,11,0.05)", line=dict(color="#B8860B", width=0.5, dash="dot"), layer="below")
-    fig.add_annotation(x=7.5, y=56,
-        text="<b>BLUE OCEAN</b><br>High Protein · Low Sugar",
-        showarrow=False,
-        font=dict(size=10, color="#B8860B", family="IBM Plex Sans"),
-        bgcolor="rgba(255,255,255,0.92)",
-        bordercolor="#B8860B", borderwidth=1, borderpad=8)
+fig.add_vline(x=SUGAR_THRESHOLD,   line_dash="dot", line_color="#B8860B", line_width=1)
+fig.add_hline(y=PROTEIN_THRESHOLD, line_dash="dot", line_color="#B8860B", line_width=1)
+fig.add_shape(
+    type="rect", x0=0, x1=SUGAR_THRESHOLD, y0=PROTEIN_THRESHOLD, y1=70,
+    fillcolor="rgba(184,134,11,0.05)",
+    line=dict(color="#B8860B", width=0.5, dash="dot"),
+    layer="below",
+)
+fig.add_annotation(
+    x=7.5, y=56,
+    text="<b>BLUE OCEAN</b><br>High Protein · Low Sugar",
+    showarrow=False,
+    font=dict(size=10, color="#B8860B", family="IBM Plex Sans"),
+    bgcolor="rgba(255,255,255,0.92)",
+    bordercolor="#B8860B", borderwidth=1, borderpad=8,
+)
+fig.update_layout(
+    xaxis=dict(range=[-1,65], gridcolor=GRID_COLOR, zerolinecolor=GRID_COLOR,
+               title="Sugar (g/100g)",
+               title_font=dict(color=FONT_COLOR, size=11, family="IBM Plex Sans"),
+               tickfont=dict(color=FONT_COLOR, size=10)),
+    yaxis=dict(range=[-1,70], gridcolor=GRID_COLOR, zerolinecolor=GRID_COLOR,
+               title="Protein (g/100g)",
+               title_font=dict(color=FONT_COLOR, size=11, family="IBM Plex Sans"),
+               tickfont=dict(color=FONT_COLOR, size=10)),
+    legend=dict(
+        title=dict(text="CATEGORY", font=dict(size=9, color=FONT_COLOR)),
+        font=dict(size=10, color=TEXT_COLOR, family="IBM Plex Sans"),
+        bgcolor="rgba(255,255,255,0.95)",
+        bordercolor="#DDD9CF", borderwidth=1,
+    ),
+    margin=dict(l=60, r=40, t=20, b=60),
+    plot_bgcolor=PLOT_BG, paper_bgcolor=PAPER_BG,
+    height=540,
+)
 
-    fig.update_layout(
-        xaxis=dict(range=[-1,65], gridcolor=GRID_COLOR, zerolinecolor=GRID_COLOR,
-                   title="Sugar (g/100g)", title_font=dict(color=FONT_COLOR, size=11, family="IBM Plex Sans"),
-                   tickfont=dict(color=FONT_COLOR, size=10)),
-        yaxis=dict(range=[-1,70], gridcolor=GRID_COLOR, zerolinecolor=GRID_COLOR,
-                   title="Protein (g/100g)", title_font=dict(color=FONT_COLOR, size=11, family="IBM Plex Sans"),
-                   tickfont=dict(color=FONT_COLOR, size=10)),
-        legend=dict(title=dict(text="CATEGORY", font=dict(size=9, color=FONT_COLOR)),
-                    font=dict(size=10, color=TEXT_COLOR, family="IBM Plex Sans"),
-                    bgcolor="rgba(255,255,255,0.95)", bordercolor="#DDD9CF", borderwidth=1),
-        margin=dict(l=60, r=40, t=20, b=60),
-        plot_bgcolor=PLOT_BG, paper_bgcolor=PAPER_BG,
-        height=540,
-    )
+st.markdown("<div style='padding:0 3rem;'>", unsafe_allow_html=True)
+st.plotly_chart(fig, use_container_width=True)
+st.markdown("</div>", unsafe_allow_html=True)
 
-    st.markdown("<div style='padding:0 3rem;'>", unsafe_allow_html=True)
-    st.plotly_chart(fig, use_container_width=True)
-    st.markdown("</div>", unsafe_allow_html=True)
 
-# ── Insight box ───────────────────────────────────────────
+# ── Key finding box ───────────────────────────────────────
 if len(opp_df) > 0:
     best_cat = opp_df.iloc[0]["Category"]
     bo_cat   = df[
@@ -260,27 +357,38 @@ if len(opp_df) > 0:
     ].copy().reset_index(drop=True)
     target_p = bo_cat["proteins_100g"].median() if len(bo_cat) > 0 else PROTEIN_THRESHOLD
     target_s = bo_cat["sugars_100g"].median()   if len(bo_cat) > 0 else SUGAR_THRESHOLD
+
     st.markdown(f"""
-    <div style="margin:0 3rem 0 3rem;background:#fff;border:1px solid #DDD9CF;border-left:3px solid #B8860B;padding:1.5rem 2rem;">
-      <div style="font-size:0.68rem;letter-spacing:0.14em;text-transform:uppercase;color:#B8860B;margin-bottom:0.7rem;font-weight:500;">◈ Key Finding</div>
-      <div style="font-size:1rem;line-height:1.75;color:#4A4844;">
-        The biggest market opportunity is in <strong style="color:#1C1B18;">{best_cat}</strong> —
-        specifically products with <strong style="color:#1C1B18;">~{target_p:.0f}g protein</strong> and
+    <div style="margin:0.5rem 3rem 0 3rem;background:#fff;border:1px solid #DDD9CF;
+                border-left:3px solid #B8860B;padding:1.5rem 2rem;">
+      <div style="font-size:0.65rem;letter-spacing:0.14em;text-transform:uppercase;
+                  color:#B8860B;margin-bottom:0.7rem;font-weight:500;">◈ Key Finding</div>
+      <div style="font-size:0.98rem;line-height:1.8;color:#4A4844;">
+        The biggest market opportunity is in
+        <strong style="color:#1C1B18;">{best_cat}</strong> —
+        specifically products with
+        <strong style="color:#1C1B18;">~{target_p:.0f}g protein</strong> and
         <strong style="color:#1C1B18;">under {target_s:.0f}g sugar</strong> per 100g.
-        Only <strong style="color:#1C1B18;">{len(bo_cat):,} products</strong> currently occupy this quadrant,
-        against hundreds of high-sugar alternatives. The supply gap is structural and actionable.
+        Only <strong style="color:#1C1B18;">{len(bo_cat):,} products</strong>
+        currently occupy this quadrant, against hundreds of high-sugar alternatives.
+        The supply gap is structural and actionable.
       </div>
     </div>
     """, unsafe_allow_html=True)
 
 st.markdown("<div style='margin:2rem 3rem;border-top:1px solid #DDD9CF;'></div>", unsafe_allow_html=True)
 
+
 # ── Section 02: Scorecard ─────────────────────────────────
 st.markdown("""
-<div style="padding:0 3rem;">
-  <div style="font-size:0.68rem;letter-spacing:0.16em;text-transform:uppercase;color:#B8860B;font-weight:500;margin-bottom:0.3rem;">Section 02</div>
-  <div style="font-family:'Playfair Display',serif;font-size:1.8rem;color:#1C1B18;margin-bottom:0.3rem;">Opportunity Scorecard</div>
-  <div style="font-size:0.85rem;color:#8A8680;font-style:italic;margin-bottom:1rem;">Categories ranked by composite investment priority score.</div>
+<div style="padding:0 3rem 0.5rem 3rem;">
+  <div style="font-size:0.65rem;letter-spacing:0.16em;text-transform:uppercase;
+              color:#B8860B;font-weight:500;margin-bottom:0.3rem;">Section 02</div>
+  <div style="font-family:'Playfair Display',serif;font-size:1.75rem;
+              color:#1C1B18;margin-bottom:0.25rem;">Opportunity Scorecard</div>
+  <div style="font-size:0.83rem;color:#8A8680;font-style:italic;">
+    Categories ranked by composite investment priority score.
+  </div>
 </div>
 """, unsafe_allow_html=True)
 
@@ -296,25 +404,39 @@ for i, (cat, score) in enumerate(zip(cats_s, scores_s)):
 fig_l.add_trace(go.Scatter(
     x=scores_s, y=cats_s,
     mode="markers+text",
-    marker=dict(size=13,
-                color=["#B8860B" if c == top_cat else "#EFECE5" for c in cats_s],
-                line=dict(color=["#B8860B" if c == top_cat else "#C8C4BA" for c in cats_s], width=1.5)),
+    marker=dict(
+        size=13,
+        color=["#B8860B" if c == top_cat else "#EFECE5" for c in cats_s],
+        line=dict(color=["#B8860B" if c == top_cat else "#C8C4BA" for c in cats_s], width=1.5),
+    ),
     text=[f"  {s:.2f}" for s in scores_s],
     textposition="middle right",
-    textfont=dict(size=11, color=["#B8860B" if c == top_cat else "#8A8680" for c in cats_s], family="IBM Plex Mono"),
+    textfont=dict(
+        size=11,
+        color=["#B8860B" if c == top_cat else "#8A8680" for c in cats_s],
+        family="IBM Plex Mono",
+    ),
     hovertemplate="%{y}: %{x:.3f}<extra></extra>",
 ))
+fig_l.add_annotation(
+    x=scores_s[0] + 0.015, y=0,
+    text="#1", showarrow=False,
+    font=dict(size=10, color="#B8860B", family="IBM Plex Mono"),
+    xanchor="left",
+)
 fig_l.update_layout(
-    xaxis=dict(title="Opportunity Score", range=[0, 1.28], showgrid=True, gridcolor=GRID_COLOR,
-               zeroline=False, title_font=dict(color=FONT_COLOR, size=10), tickfont=dict(color=FONT_COLOR, size=10)),
-    yaxis=dict(autorange="reversed", tickfont=dict(size=11, color=TEXT_COLOR, family="IBM Plex Sans"), showgrid=False),
+    xaxis=dict(title="Opportunity Score", range=[0, 1.28],
+               showgrid=True, gridcolor=GRID_COLOR, zeroline=False,
+               title_font=dict(color=FONT_COLOR, size=10),
+               tickfont=dict(color=FONT_COLOR, size=10)),
+    yaxis=dict(autorange="reversed",
+               tickfont=dict(size=11, color=TEXT_COLOR, family="IBM Plex Sans"),
+               showgrid=False),
     showlegend=False,
     margin=dict(l=10, r=110, t=10, b=40),
     plot_bgcolor=PLOT_BG, paper_bgcolor=PAPER_BG,
     height=340,
 )
-fig_l.add_annotation(x=scores_s[0]+0.015, y=0, text="#1",
-                      showarrow=False, font=dict(size=10, color="#B8860B", family="IBM Plex Mono"), xanchor="left")
 
 st.markdown("<div style='padding:0 3rem;'>", unsafe_allow_html=True)
 ch_col, me_col = st.columns([3, 1])
@@ -323,15 +445,22 @@ with ch_col:
 with me_col:
     st.markdown("""
     <div style="background:#fff;border:1px solid #DDD9CF;padding:1.3rem 1.4rem;margin-top:0.5rem;">
-      <div style="font-size:0.68rem;letter-spacing:0.1em;text-transform:uppercase;color:#8A8680;margin-bottom:1rem;font-weight:500;">Scoring Method</div>
-      <div style="display:flex;justify-content:space-between;padding:0.5rem 0;border-bottom:1px solid #EFECE5;font-size:0.88rem;">
-        <span style="color:#4A4844;">Gap Size</span><span style="color:#B8860B;font-weight:600;font-family:'Playfair Display',serif;">50%</span>
+      <div style="font-size:0.65rem;letter-spacing:0.1em;text-transform:uppercase;
+                  color:#8A8680;margin-bottom:1rem;font-weight:500;">Scoring Method</div>
+      <div style="display:flex;justify-content:space-between;align-items:baseline;
+                  padding:0.5rem 0;border-bottom:1px solid #EFECE5;font-size:0.88rem;">
+        <span style="color:#4A4844;">Gap Size</span>
+        <span style="color:#B8860B;font-weight:600;font-family:'Playfair Display',serif;">50%</span>
       </div>
-      <div style="display:flex;justify-content:space-between;padding:0.5rem 0;border-bottom:1px solid #EFECE5;font-size:0.88rem;">
-        <span style="color:#4A4844;">Demand Proxy</span><span style="color:#B8860B;font-weight:600;font-family:'Playfair Display',serif;">30%</span>
+      <div style="display:flex;justify-content:space-between;align-items:baseline;
+                  padding:0.5rem 0;border-bottom:1px solid #EFECE5;font-size:0.88rem;">
+        <span style="color:#4A4844;">Demand Proxy</span>
+        <span style="color:#B8860B;font-weight:600;font-family:'Playfair Display',serif;">30%</span>
       </div>
-      <div style="display:flex;justify-content:space-between;padding:0.5rem 0;font-size:0.88rem;">
-        <span style="color:#4A4844;">Market Size</span><span style="color:#B8860B;font-weight:600;font-family:'Playfair Display',serif;">20%</span>
+      <div style="display:flex;justify-content:space-between;align-items:baseline;
+                  padding:0.5rem 0;font-size:0.88rem;">
+        <span style="color:#4A4844;">Market Size</span>
+        <span style="color:#B8860B;font-weight:600;font-family:'Playfair Display',serif;">20%</span>
       </div>
     </div>
     """, unsafe_allow_html=True)
@@ -344,20 +473,19 @@ st.markdown("</div>", unsafe_allow_html=True)
 
 st.markdown("<div style='margin:2rem 3rem;border-top:1px solid #DDD9CF;'></div>", unsafe_allow_html=True)
 
+
 # ── Section 03: Protein sources ───────────────────────────
 st.markdown("""
-<div style="padding:0 3rem;">
-  <div style="font-size:0.68rem;letter-spacing:0.16em;text-transform:uppercase;color:#B8860B;font-weight:500;margin-bottom:0.3rem;">Section 03 · Bonus</div>
-  <div style="font-family:'Playfair Display',serif;font-size:1.8rem;color:#1C1B18;margin-bottom:0.3rem;">Protein Sources</div>
-  <div style="font-size:0.85rem;color:#8A8680;font-style:italic;margin-bottom:1rem;">Ingredients most common in high-protein / low-sugar products — R&D intelligence.</div>
+<div style="padding:0 3rem 0.5rem 3rem;">
+  <div style="font-size:0.65rem;letter-spacing:0.16em;text-transform:uppercase;
+              color:#B8860B;font-weight:500;margin-bottom:0.3rem;">Section 03 · Bonus</div>
+  <div style="font-family:'Playfair Display',serif;font-size:1.75rem;
+              color:#1C1B18;margin-bottom:0.25rem;">Protein Sources</div>
+  <div style="font-size:0.83rem;color:#8A8680;font-style:italic;">
+    Ingredients most common in high-protein / low-sugar products — R&D intelligence.
+  </div>
 </div>
 """, unsafe_allow_html=True)
-
-PROTEIN_KEYWORDS = [
-    "whey","peanut","soy","soya","almond","cashew",
-    "protein","egg","milk protein","casein","hemp",
-    "pea protein","sunflower seed","chia","quinoa",
-]
 
 hp = df[
     (df["proteins_100g"] >= PROTEIN_THRESHOLD) &
@@ -385,9 +513,11 @@ fig_b = go.Figure(go.Bar(
     hovertemplate="%{x}: %{y:,} products<extra></extra>",
 ))
 fig_b.update_layout(
-    xaxis=dict(tickfont=dict(color=TEXT_COLOR, size=11, family="IBM Plex Sans"), showgrid=False, zeroline=False),
-    yaxis=dict(gridcolor=GRID_COLOR, tickfont=dict(color=FONT_COLOR, size=10), zeroline=False,
-               title="Products", title_font=dict(color=FONT_COLOR, size=10)),
+    xaxis=dict(tickfont=dict(color=TEXT_COLOR, size=11, family="IBM Plex Sans"),
+               showgrid=False, zeroline=False),
+    yaxis=dict(gridcolor=GRID_COLOR, tickfont=dict(color=FONT_COLOR, size=10),
+               zeroline=False, title="Products",
+               title_font=dict(color=FONT_COLOR, size=10)),
     margin=dict(l=50, r=30, t=20, b=40),
     plot_bgcolor=PLOT_BG, paper_bgcolor=PAPER_BG,
     height=320, bargap=0.4,
@@ -398,14 +528,25 @@ st.plotly_chart(fig_b, use_container_width=True)
 
 if top_ingr:
     top3  = [k.title() for k, _ in top_ingr[:3]]
-    pills = "".join([f'<span style="background:#D8EFE4;border:1px solid #2D6A4F;color:#2D6A4F;padding:0.3rem 1rem;font-size:0.83rem;font-weight:500;margin-right:0.5rem;">{p}</span>' for p in top3])
+    pills = "".join([
+        f'<span style="background:#D8EFE4;border:1px solid #2D6A4F;color:#2D6A4F;'
+        f'padding:0.3rem 1rem;font-size:0.82rem;font-weight:500;margin-right:0.5rem;">{p}</span>'
+        for p in top3
+    ])
     st.markdown(f"""
-    <div style="background:#fff;border:1px solid #DDD9CF;border-top:2px solid #2D6A4F;padding:1.1rem 1.5rem;display:flex;align-items:center;gap:1.5rem;margin-bottom:1rem;">
-      <span style="font-size:0.68rem;letter-spacing:0.1em;text-transform:uppercase;color:#8A8680;font-weight:500;white-space:nowrap;">Top 3 Sources</span>
+    <div style="background:#fff;border:1px solid #DDD9CF;border-top:2px solid #2D6A4F;
+                padding:1.1rem 1.5rem;display:flex;align-items:center;gap:1.5rem;margin-bottom:1rem;">
+      <span style="font-size:0.65rem;letter-spacing:0.1em;text-transform:uppercase;
+                   color:#8A8680;font-weight:500;white-space:nowrap;">Top 3 Sources</span>
       <div>{pills}</div>
     </div>
     """, unsafe_allow_html=True)
 
 st.markdown("</div>", unsafe_allow_html=True)
 st.markdown("<div style='margin:2rem 3rem;border-top:1px solid #DDD9CF;'></div>", unsafe_allow_html=True)
-st.markdown("<div style='padding:0 3rem 3rem 3rem;font-size:0.7rem;letter-spacing:0.08em;color:#C8C4BA;text-align:center;'>HELIX CPG PARTNERS · DATA: OPEN FOOD FACTS · BUILT WITH STREAMLIT</div>", unsafe_allow_html=True)
+st.markdown("""
+<div style="padding:0 3rem 3rem 3rem;font-size:0.65rem;letter-spacing:0.1em;
+            color:#C8C4BA;text-align:center;">
+  HELIX CPG PARTNERS · DATA: OPEN FOOD FACTS · BUILT WITH STREAMLIT
+</div>
+""", unsafe_allow_html=True)
