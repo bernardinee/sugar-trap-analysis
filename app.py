@@ -336,12 +336,10 @@ with me_col:
     </div>
     """, unsafe_allow_html=True)
 
-st.dataframe(
-    opp_df[["Category","Total Products","Blue Ocean Count","Gap %","Opportunity Score"]]
-    .style.background_gradient(subset=["Opportunity Score"], cmap="YlOrBr")
-    .format({"Opportunity Score":"{:.3f}","Gap %":"{:.1f}%"}),
-    use_container_width=True,
-)
+display_df = opp_df[["Category","Total Products","Blue Ocean Count","Gap %","Opportunity Score"]].copy()
+display_df["Gap %"]             = display_df["Gap %"].apply(lambda x: f"{x:.1f}%")
+display_df["Opportunity Score"] = display_df["Opportunity Score"].apply(lambda x: f"{x:.3f}")
+st.dataframe(display_df, use_container_width=True)
 st.markdown("</div>", unsafe_allow_html=True)
 
 st.markdown("<div style='margin:2rem 3rem;border-top:1px solid #DDD9CF;'></div>", unsafe_allow_html=True)
