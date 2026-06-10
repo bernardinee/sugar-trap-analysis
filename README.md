@@ -15,7 +15,7 @@ An analysis of 150,000 products from the Open Food Facts database reveals a sign
 |Deliverable|Link|
 |-|-|
 |Notebook (Google Colab)|[https://colab.research.google.com/drive/1KHXKwOCir3t7t6Uf28tv1I0picA7l\_XF?usp=sharing](https://colab.research.google.com/drive/1KHXKwOCir3t7t6Uf28tv1I0picA7l_XF?usp=sharing)|
-|Dashboard (Streamlit Cloud)|*Add link — verify in Incognito before submitting*|
+|Dashboard (Streamlit Cloud)|https://sugar-trap-analysis-azkzniqjjhfyfez3wfrg8t.streamlit.app/|
 
 
 > All links tested in Incognito mode and publicly accessible without login.
