@@ -57,11 +57,7 @@ html, body, .stApp, [class*="css"] {
   color: var(--ink);
 }
 
-/* ── Hide Streamlit chrome ────────────────────────────────
-   NOTE: DO NOT add `header` here — Streamlit renders the
-   sidebar re-open button inside <header>, so hiding the
-   whole element traps the user after collapsing the sidebar.
-   Instead target only the specific children we want gone. */
+/* ── Hide only specific Streamlit chrome pieces ───────────── */
 #MainMenu,
 footer,
 [data-testid="stToolbar"],
@@ -70,65 +66,15 @@ footer,
 .stDeployButton,
 [class*="viewerBadge"] {
   display: none !important;
-  visibility: hidden !important;
 }
 
-/* Keep the header in the DOM (the sidebar toggle lives inside it)
-   but make it invisible. MUST use pointer-events:none so clicks
-   on the main content area are not blocked by the invisible bar. */
+/* Make the header bar visually invisible but leave ALL pointer
+   events alone — touching pointer-events breaks the sidebar
+   toggle in every browser. Just clear the background. */
 header[data-testid="stHeader"] {
   background: transparent !important;
   border: none !important;
   box-shadow: none !important;
-  pointer-events: none !important;
-  height: auto !important;
-}
-
-/* ── Sidebar toggle — always visible ────────────────────────
-   Both buttons (collapse when open, expand when closed) get a
-   small floating pill so they are always discoverable.        */
-[data-testid="stSidebarCollapseButton"],
-[data-testid="collapsedControl"],
-[data-testid="stSidebarCollapseButton"] > button,
-[data-testid="collapsedControl"] > button {
-  pointer-events: auto !important;
-  display: flex !important;
-  visibility: visible !important;
-  opacity: 1 !important;
-  position: relative !important;
-  z-index: 99999 !important;
-}
-
-/* Give the expand button (shown when sidebar is collapsed) a
-   clear visual pill so users know it's there */
-[data-testid="collapsedControl"] {
-  position: fixed !important;
-  top: 0.75rem !important;
-  left: 0.75rem !important;
-  background: #FFFFFF !important;
-  border: 1px solid #DDD9CF !important;
-  border-radius: 4px !important;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.10) !important;
-  padding: 2px !important;
-}
-[data-testid="collapsedControl"]:hover {
-  border-color: #B8860B !important;
-  box-shadow: 0 1px 6px rgba(184,134,11,0.18) !important;
-}
-
-/* Style the collapse button (shown when sidebar is open) to match */
-[data-testid="stSidebarCollapseButton"] > button,
-[data-testid="collapsedControl"] > button {
-  background: transparent !important;
-  border: none !important;
-  color: #8A8680 !important;
-  cursor: pointer !important;
-  padding: 4px 6px !important;
-}
-[data-testid="stSidebarCollapseButton"] > button:hover,
-[data-testid="collapsedControl"] > button:hover {
-  color: #B8860B !important;
-  background: transparent !important;
 }
 
 .block-container { padding: 0 !important; max-width: 100% !important; }
