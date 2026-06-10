@@ -63,27 +63,23 @@ footer,
   display: none !important;
 }
 
-/* Match header to app background */
+/* Hide the header bar entirely — we're making the sidebar static
+   so there is no collapse/expand toggle to worry about. */
 header[data-testid="stHeader"] {
-  background-color: #F7F5F0 !important;
-  border-bottom: none !important;
-  box-shadow: none !important;
+  display: none !important;
 }
 
-/* Make the "reopen sidebar" button a bold gold tab — impossible to miss */
+/* Hide both toggle buttons so the sidebar can never be collapsed */
+[data-testid="stSidebarCollapseButton"],
 [data-testid="collapsedControl"] {
-  background-color: #B8860B !important;
-  border-radius: 0 6px 6px 0 !important;
-  padding: 6px 10px !important;
-  box-shadow: 2px 2px 6px rgba(0,0,0,0.15) !important;
-  top: 50% !important;
-  transform: translateY(-50%) !important;
+  display: none !important;
 }
-[data-testid="collapsedControl"] svg,
-[data-testid="collapsedControl"] span,
-[data-testid="collapsedControl"] button {
-  color: #FFFFFF !important;
-  fill: #FFFFFF !important;
+
+/* Force the sidebar to always be visible and never slide away */
+[data-testid="stSidebar"] {
+  transform: none !important;
+  min-width: 22rem !important;
+  width: 22rem !important;
 }
 
 .block-container { padding: 0 !important; max-width: 100% !important; }
