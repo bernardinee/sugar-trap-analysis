@@ -51,8 +51,8 @@ html, body, .stApp, [class*="css"] {
   color: var(--ink);
 }
 
-/* Hide chrome we don't want — header is intentionally NOT listed here.
-   Hiding header breaks the sidebar collapse/expand button in all browsers. */
+/* Hide chrome we don't want.
+   header is intentionally NOT hidden — it contains the sidebar toggle. */
 #MainMenu,
 footer,
 [data-testid="stToolbar"],
@@ -61,6 +61,14 @@ footer,
 .stDeployButton,
 [class*="viewerBadge"] {
   display: none !important;
+}
+
+/* Match the header bar to the app background so it blends in,
+   but keep it fully interactive so the sidebar toggle works. */
+header[data-testid="stHeader"] {
+  background-color: #F7F5F0 !important;
+  border-bottom: none !important;
+  box-shadow: none !important;
 }
 
 .block-container { padding: 0 !important; max-width: 100% !important; }
