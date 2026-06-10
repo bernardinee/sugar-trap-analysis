@@ -16,8 +16,6 @@ st.markdown("""
 @import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=block');
 @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;1,400&family=IBM+Plex+Sans:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap');
 
-/* Force the Material Symbols font on Streamlit's icon spans so glyphs
-   render immediately as icons rather than as raw text like "keyboard_double_" */
 .material-symbols-rounded,
 [data-testid="stSidebarCollapseButton"] span,
 [data-testid="collapsedControl"] span {
@@ -57,7 +55,6 @@ html, body, .stApp, [class*="css"] {
   color: var(--ink);
 }
 
-/* ── Hide only specific Streamlit chrome pieces ───────────── */
 #MainMenu,
 footer,
 [data-testid="stToolbar"],
@@ -68,9 +65,6 @@ footer,
   display: none !important;
 }
 
-/* Make the header bar visually invisible but leave ALL pointer
-   events alone — touching pointer-events breaks the sidebar
-   toggle in every browser. Just clear the background. */
 header[data-testid="stHeader"] {
   background: transparent !important;
   border: none !important;
@@ -79,7 +73,6 @@ header[data-testid="stHeader"] {
 
 .block-container { padding: 0 !important; max-width: 100% !important; }
 
-/* Sidebar */
 [data-testid="stSidebar"] {
   background-color: var(--white) !important;
   border-right: 1px solid var(--border) !important;
@@ -97,7 +90,6 @@ header[data-testid="stHeader"] {
   font-weight: 500 !important;
 }
 
-/* Multiselect tags */
 [data-testid="stMultiSelect"] span[data-baseweb="tag"] {
   background-color: var(--gold-lt) !important;
   border: 1px solid var(--gold) !important;
@@ -106,7 +98,6 @@ header[data-testid="stHeader"] {
   border-radius: 2px !important;
 }
 
-/* Remove default metric styling */
 [data-testid="metric-container"] {
   background: transparent !important;
   border: none !important;
@@ -199,7 +190,7 @@ with st.sidebar:
     """, unsafe_allow_html=True)
 
 
-# ── Guard: no categories selected ─────────────────────────────────────────────
+# ── Guard ──────────────────────────────────────────────────────────────────────
 if not selected_cats:
     st.markdown("""
     <div style="padding:4rem 3rem;text-align:center;">
@@ -226,7 +217,6 @@ pct_bo  = len(blue_ocean) / max(len(df_filtered), 1) * 100
 avg_sug = df_filtered["sugars_100g"].mean()   if len(df_filtered) > 0 else 0
 avg_pro = df_filtered["proteins_100g"].mean() if len(df_filtered) > 0 else 0
 
-# Sample for scatter
 pieces = []
 for cat in selected_cats:
     chunk = df_filtered[df_filtered["primary_category"] == cat]
@@ -235,10 +225,6 @@ for cat in selected_cats:
     pieces.append(chunk.sample(n=min(len(chunk), sample_size), random_state=42))
 df_plot = pd.concat(pieces, ignore_index=True) if pieces else pd.DataFrame()
 
-
-# ══════════════════════════════════════════════════════════════════════════════
-# PAGE
-# ══════════════════════════════════════════════════════════════════════════════
 
 # ── Header ─────────────────────────────────────────────────────────────────────
 st.markdown("""
