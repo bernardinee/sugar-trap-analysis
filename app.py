@@ -11,37 +11,33 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
+# Inject Material Symbols font directly into the parent document <head>
+# so it is available before Streamlit renders the sidebar toggle icon.
+# Without this the icon name renders as raw text ("keyboard_double_arrow_left").
+components.html("""
+<script>
+(function() {
+  var d = parent.document;
+  if (d.getElementById('material-symbols-font')) return;
+  var l = d.createElement('link');
+  l.id   = 'material-symbols-font';
+  l.rel  = 'stylesheet';
+  l.href = 'https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=block';
+  d.head.appendChild(l);
+})();
+</script>
+""", height=0)
+
 st.markdown("""
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=block');
 @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;1,400&family=IBM+Plex+Sans:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap');
-
-.material-symbols-rounded,
-[data-testid="stSidebarCollapseButton"] span,
-[data-testid="collapsedControl"] span {
-  font-family: 'Material Symbols Rounded' !important;
-  font-size: 20px !important;
-  font-style: normal !important;
-  font-weight: normal !important;
-  line-height: 1 !important;
-  letter-spacing: normal !important;
-  text-transform: none !important;
-  display: inline-block !important;
-  white-space: nowrap !important;
-  direction: ltr !important;
-  -webkit-font-feature-settings: 'liga' !important;
-  font-feature-settings: 'liga' !important;
-  -webkit-font-smoothing: antialiased !important;
-}
 
 :root {
   --bg:       #F7F5F0;
   --white:    #FFFFFF;
   --surface:  #EFECE5;
   --border:   #DDD9CF;
-  --border2:  #C8C4BA;
   --ink:      #1C1B18;
-  --ink-mid:  #4A4844;
   --ink-dim:  #8A8680;
   --gold:     #B8860B;
   --gold-lt:  #F5EDD5;
@@ -55,6 +51,8 @@ html, body, .stApp, [class*="css"] {
   color: var(--ink);
 }
 
+/* Hide chrome we don't want — header is intentionally NOT listed here.
+   Hiding header breaks the sidebar collapse/expand button in all browsers. */
 #MainMenu,
 footer,
 [data-testid="stToolbar"],
@@ -63,12 +61,6 @@ footer,
 .stDeployButton,
 [class*="viewerBadge"] {
   display: none !important;
-}
-
-header[data-testid="stHeader"] {
-  background: transparent !important;
-  border: none !important;
-  box-shadow: none !important;
 }
 
 .block-container { padding: 0 !important; max-width: 100% !important; }
@@ -226,7 +218,7 @@ for cat in selected_cats:
 df_plot = pd.concat(pieces, ignore_index=True) if pieces else pd.DataFrame()
 
 
-# ── Header ─────────────────────────────────────────────────────────────────────
+# ── Page header ────────────────────────────────────────────────────────────────
 st.markdown("""
 <div style="padding:2.5rem 3rem 1.5rem 3rem;border-bottom:1px solid #DDD9CF;">
   <div style="font-size:0.65rem;letter-spacing:0.2em;text-transform:uppercase;
@@ -357,7 +349,7 @@ st.plotly_chart(fig, use_container_width=True)
 st.markdown("</div>", unsafe_allow_html=True)
 
 
-# ── Key finding box ────────────────────────────────────────────────────────────
+# ── Key finding ────────────────────────────────────────────────────────────────
 if len(opp_df) > 0:
     best_cat = opp_df.iloc[0]["Category"]
     bo_cat   = df[
