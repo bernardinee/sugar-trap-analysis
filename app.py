@@ -63,12 +63,27 @@ footer,
   display: none !important;
 }
 
-/* Match the header bar to the app background so it blends in,
-   but keep it fully interactive so the sidebar toggle works. */
+/* Match header to app background */
 header[data-testid="stHeader"] {
   background-color: #F7F5F0 !important;
   border-bottom: none !important;
   box-shadow: none !important;
+}
+
+/* Make the "reopen sidebar" button a bold gold tab — impossible to miss */
+[data-testid="collapsedControl"] {
+  background-color: #B8860B !important;
+  border-radius: 0 6px 6px 0 !important;
+  padding: 6px 10px !important;
+  box-shadow: 2px 2px 6px rgba(0,0,0,0.15) !important;
+  top: 50% !important;
+  transform: translateY(-50%) !important;
+}
+[data-testid="collapsedControl"] svg,
+[data-testid="collapsedControl"] span,
+[data-testid="collapsedControl"] button {
+  color: #FFFFFF !important;
+  fill: #FFFFFF !important;
 }
 
 .block-container { padding: 0 !important; max-width: 100% !important; }
