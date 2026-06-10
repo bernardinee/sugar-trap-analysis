@@ -11,41 +11,6 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-# Remove the keyboard_double_arrow text node — it is rendered by Streamlit
-# before CSS loads so JS is the only reliable way to remove it
-components.html("""
-<script>
-(function() {
-  function removeKeyboardText() {
-    var sidebar = parent.document.querySelector('[data-testid="stSidebar"]');
-    if (!sidebar) return;
-    var walker = parent.document.createTreeWalker(
-      sidebar, NodeFilter.SHOW_TEXT, null, false
-    );
-    var node;
-    while (node = walker.nextNode()) {
-      if (node.nodeValue && node.nodeValue.includes('keyboard')) {
-        node.nodeValue = '';
-      }
-    }
-    // Also hide any element whose text content is only the keyboard string
-    var allEls = sidebar.querySelectorAll('*');
-    allEls.forEach(function(el) {
-      if (el.childNodes.length === 1 &&
-          el.childNodes[0].nodeType === 3 &&
-          el.textContent.trim().startsWith('keyboard')) {
-        el.style.display = 'none';
-      }
-    });
-  }
-  // Run immediately and again after a short delay to catch late renders
-  removeKeyboardText();
-  setTimeout(removeKeyboardText, 500);
-  setTimeout(removeKeyboardText, 1500);
-})();
-</script>
-""", height=0)
-
 st.markdown("""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;1,400&family=IBM+Plex+Sans:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap');
@@ -71,40 +36,39 @@ html, body, .stApp, [class*="css"] {
   color: var(--ink);
 }
 
-/* Hide ALL Streamlit chrome including the keyboard icon */
-#MainMenu, footer, header,
+/* ── Hide Streamlit chrome ────────────────────────────────
+   NOTE: DO NOT add `header` here — Streamlit renders the
+   sidebar re-open button inside <header>, so hiding the
+   whole element traps the user after collapsing the sidebar.
+   Instead target only the specific children we want gone. */
+#MainMenu,
+footer,
 [data-testid="stToolbar"],
 [data-testid="stDecoration"],
 [data-testid="stStatusWidget"],
 .stDeployButton,
-[class*="viewerBadge"] { display: none !important; visibility: hidden !important; }
+[class*="viewerBadge"] {
+  display: none !important;
+  visibility: hidden !important;
+}
 
-/* Keep sidebar toggle fully visible and functional */
+/* Hide the Streamlit top-bar background but leave it in the
+   DOM so the collapse/expand button inside it still works. */
+header[data-testid="stHeader"] {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  pointer-events: none;   /* clicks fall through to page content */
+}
+
+/* Re-enable pointer events on the actual toggle buttons
+   that live inside the header */
 [data-testid="stSidebarCollapseButton"],
 [data-testid="collapsedControl"] {
+  pointer-events: auto !important;
   display: flex !important;
   visibility: visible !important;
   opacity: 1 !important;
-}
-
-/* Hide the keyboard_double_ artifact text Streamlit renders at top of sidebar */
-[data-testid="stSidebar"] > div > div > div > div:first-child:not([class*="block"]) {
-  display: none !important;
-}
-[data-testid="stSidebarUserContent"] ~ div,
-[data-testid="stSidebar"] span[data-testid="stMarkdownContainer"]:empty,
-[data-testid="stSidebar"] > div:first-child > div:first-child > div:first-child > div:first-child {
-  display: none !important;
-}
-/* Catch the raw text node containing keyboard icon */
-[aria-label*="keyboard"],
-[class*="keyboard_double"],
-[data-testid*="keyboard"] {
-  display: none !important;
-  width: 0 !important;
-  height: 0 !important;
-  overflow: hidden !important;
-  position: absolute !important;
 }
 
 .block-container { padding: 0 !important; max-width: 100% !important; }
@@ -136,11 +100,6 @@ html, body, .stApp, [class*="css"] {
   border-radius: 2px !important;
 }
 
-/* Slider thumb colour */
-[data-testid="stSlider"] [data-testid="stThumbValue"] {
-  color: var(--gold) !important;
-}
-
 /* Remove default metric styling */
 [data-testid="metric-container"] {
   background: transparent !important;
@@ -151,7 +110,7 @@ html, body, .stApp, [class*="css"] {
 """, unsafe_allow_html=True)
 
 
-# ── Constants ─────────────────────────────────────────────
+# ── Constants ──────────────────────────────────────────────────────────────────
 CATEGORY_COLORS = {
     "Chocolate & Candy":     "#8B3A2A",
     "Biscuits & Cookies":    "#A0622A",
@@ -178,7 +137,7 @@ PROTEIN_KEYWORDS = [
 ]
 
 
-# ── Data ──────────────────────────────────────────────────
+# ── Data ───────────────────────────────────────────────────────────────────────
 @st.cache_data(show_spinner="Loading data...")
 def load_data():
     df  = pd.read_csv("sugar_trap_clean_data.csv", low_memory=False)
@@ -189,7 +148,7 @@ df, opp_df = load_data()
 all_cats = sorted(df["primary_category"].unique().tolist())
 
 
-# ── Sidebar ───────────────────────────────────────────────
+# ── Sidebar ────────────────────────────────────────────────────────────────────
 with st.sidebar:
     st.markdown("""
     <div style="margin-bottom:1.8rem;padding-bottom:1.2rem;border-bottom:1px solid #DDD9CF;">
@@ -234,7 +193,7 @@ with st.sidebar:
     """, unsafe_allow_html=True)
 
 
-# ── Guard: no categories selected ────────────────────────
+# ── Guard: no categories selected ─────────────────────────────────────────────
 if not selected_cats:
     st.markdown("""
     <div style="padding:4rem 3rem;text-align:center;">
@@ -245,7 +204,7 @@ if not selected_cats:
     st.stop()
 
 
-# ── Filter ────────────────────────────────────────────────
+# ── Filter ─────────────────────────────────────────────────────────────────────
 df_filtered = df[
     df["primary_category"].isin(selected_cats) &
     (df["sugars_100g"]   <= sugar_max) &
@@ -261,7 +220,7 @@ pct_bo  = len(blue_ocean) / max(len(df_filtered), 1) * 100
 avg_sug = df_filtered["sugars_100g"].mean()   if len(df_filtered) > 0 else 0
 avg_pro = df_filtered["proteins_100g"].mean() if len(df_filtered) > 0 else 0
 
-# Sample for scatter — plain loop, no groupby
+# Sample for scatter
 pieces = []
 for cat in selected_cats:
     chunk = df_filtered[df_filtered["primary_category"] == cat]
@@ -271,11 +230,11 @@ for cat in selected_cats:
 df_plot = pd.concat(pieces, ignore_index=True) if pieces else pd.DataFrame()
 
 
-# ══════════════════════════════════════════════════════════
+# ══════════════════════════════════════════════════════════════════════════════
 # PAGE
-# ══════════════════════════════════════════════════════════
+# ══════════════════════════════════════════════════════════════════════════════
 
-# ── Header ────────────────────────────────────────────────
+# ── Header ─────────────────────────────────────────────────────────────────────
 st.markdown("""
 <div style="padding:2.5rem 3rem 1.5rem 3rem;border-bottom:1px solid #DDD9CF;">
   <div style="font-size:0.65rem;letter-spacing:0.2em;text-transform:uppercase;
@@ -294,7 +253,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 
-# ── KPI row ───────────────────────────────────────────────
+# ── KPI row ────────────────────────────────────────────────────────────────────
 st.markdown("<div style='padding:1.5rem 3rem 0 3rem;'>", unsafe_allow_html=True)
 k1, k2, k3, k4 = st.columns(4)
 
@@ -323,7 +282,7 @@ st.markdown("</div>", unsafe_allow_html=True)
 st.markdown("<div style='margin:1.8rem 3rem;border-top:1px solid #DDD9CF;'></div>", unsafe_allow_html=True)
 
 
-# ── Section 01: Scatter ───────────────────────────────────
+# ── Section 01: Scatter ────────────────────────────────────────────────────────
 st.markdown("""
 <div style="padding:0 3rem 0.5rem 3rem;">
   <div style="font-size:0.65rem;letter-spacing:0.16em;text-transform:uppercase;
@@ -406,7 +365,7 @@ st.plotly_chart(fig, use_container_width=True)
 st.markdown("</div>", unsafe_allow_html=True)
 
 
-# ── Key finding box ───────────────────────────────────────
+# ── Key finding box ────────────────────────────────────────────────────────────
 if len(opp_df) > 0:
     best_cat = opp_df.iloc[0]["Category"]
     bo_cat   = df[
@@ -438,7 +397,7 @@ if len(opp_df) > 0:
 st.markdown("<div style='margin:2rem 3rem;border-top:1px solid #DDD9CF;'></div>", unsafe_allow_html=True)
 
 
-# ── Section 02: Scorecard ─────────────────────────────────
+# ── Section 02: Scorecard ──────────────────────────────────────────────────────
 st.markdown("""
 <div style="padding:0 3rem 0.5rem 3rem;">
   <div style="font-size:0.65rem;letter-spacing:0.16em;text-transform:uppercase;
@@ -533,7 +492,7 @@ st.markdown("</div>", unsafe_allow_html=True)
 st.markdown("<div style='margin:2rem 3rem;border-top:1px solid #DDD9CF;'></div>", unsafe_allow_html=True)
 
 
-# ── Section 03: Protein sources ───────────────────────────
+# ── Section 03: Protein sources ────────────────────────────────────────────────
 st.markdown("""
 <div style="padding:0 3rem 0.5rem 3rem;">
   <div style="font-size:0.65rem;letter-spacing:0.16em;text-transform:uppercase;
