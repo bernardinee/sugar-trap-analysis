@@ -6,7 +6,7 @@
 
 ## A. Executive Summary
 
-An analysis of 150,000 products from the Open Food Facts database reveals a significant and consistent market gap in the global snack aisle: the high-protein, low-sugar quadrant is dramatically under-served across every major snack category. Less than 12% of snack products meet both a protein threshold of 10g/100g and a sugar ceiling of 15g/100g, despite growing consumer demand for functional, health-forward snacking. The Bars \& Granola category presents the strongest opportunity, combining a large market footprint with the widest supply gap relative to demonstrable consumer interest. A product targeting approximately 15g of protein and under 8g of sugar per 100g — formulated around whey, peanut, or soy as the primary protein source — would occupy a position where virtually no current product competes at scale.
+An analysis of 150,000 products from the Open Food Facts database reveals a significant and consistent market gap in the global snack aisle: the high-protein, low-sugar quadrant is dramatically under-served across every major snack category. Less than 12% of snack products meet both a protein threshold of 10g/100g and a sugar ceiling of 15g/100g, despite growing consumer demand for functional, health-forward snacking. The Chocolate & Candy category presents the strongest opportunity — with only 26 products currently occupying the high-protein, low-sugar quadrant against thousands of sugary alternatives, it holds the widest supply gap of all 8 categories analysed. A product targeting approximately 12g of protein and under 3g of sugar per 100g — using a dark chocolate base with whey or peanut protein — would enter a space where virtually no current product competes at scale.
 
 \---
 
