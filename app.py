@@ -1,4 +1,5 @@
 import streamlit as st
+import streamlit.components.v1 as components
 import pandas as pd
 import plotly.graph_objects as go
 from collections import Counter
@@ -7,80 +8,103 @@ st.set_page_config(
     page_title="Sugar Trap · Helix CPG",
     page_icon="◈",
     layout="wide",
+    initial_sidebar_state="expanded",
 )
+
+components.html("""
+<script>
+(function() {
+  var d = parent.document;
+  if (d.getElementById('material-symbols-font')) return;
+  var l = d.createElement('link');
+  l.id   = 'material-symbols-font';
+  l.rel  = 'stylesheet';
+  l.href = 'https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=block';
+  d.head.appendChild(l);
+})();
+</script>
+""", height=0)
 
 st.markdown("""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;1,400&family=IBM+Plex+Sans:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap');
 
 :root {
-  --bg:      #F7F5F0;
-  --white:   #FFFFFF;
-  --border:  #DDD9CF;
-  --ink:     #1C1B18;
-  --ink-mid: #4A4844;
-  --ink-dim: #8A8680;
-  --gold:    #B8860B;
-  --gold-lt: #F5EDD5;
-  --green:   #2D6A4F;
-  --green-lt:#D8EFE4;
-  --surface: #EFECE5;
+  --bg:       #F7F5F0;
+  --white:    #FFFFFF;
+  --surface:  #EFECE5;
+  --border:   #DDD9CF;
+  --ink:      #1C1B18;
+  --ink-dim:  #8A8680;
+  --gold:     #B8860B;
+  --gold-lt:  #F5EDD5;
+  --green:    #2D6A4F;
+  --green-lt: #D8EFE4;
 }
 
 html, body, .stApp, [class*="css"] {
   background-color: var(--bg) !important;
-  font-family: 'IBM Plex Sans', sans-serif !important;
-  color: var(--ink) !important;
+  font-family: 'IBM Plex Sans', sans-serif;
+  color: var(--ink);
 }
 
-/* Hide every piece of Streamlit chrome */
-#MainMenu, footer, header,
+#MainMenu, footer,
 [data-testid="stToolbar"],
 [data-testid="stDecoration"],
 [data-testid="stStatusWidget"],
-[data-testid="stSidebarCollapseButton"],
-[data-testid="collapsedControl"],
-.stDeployButton { display: none !important; }
-
-.block-container {
-  padding: 0 !important;
-  max-width: 100% !important;
+.stDeployButton,
+[class*="viewerBadge"] {
+  display: none !important;
 }
 
-/* Multiselect tags */
-span[data-baseweb="tag"] {
+header[data-testid="stHeader"] { display: none !important; }
+
+[data-testid="stSidebarCollapseButton"],
+[data-testid="collapsedControl"] { display: none !important; }
+
+[data-testid="stSidebar"] {
+  transform: none !important;
+  min-width: 22rem !important;
+  width: 22rem !important;
+}
+
+.block-container { padding: 0 !important; max-width: 100% !important; }
+
+[data-testid="stSidebar"] {
+  background-color: var(--white) !important;
+  border-right: 1px solid var(--border) !important;
+}
+[data-testid="stSidebar"] > div { padding: 2rem 1.5rem !important; }
+[data-testid="stSidebar"] * {
+  color: var(--ink) !important;
+  font-family: 'IBM Plex Sans', sans-serif !important;
+}
+[data-testid="stSidebar"] label {
+  font-size: 0.7rem !important;
+  letter-spacing: 0.1em !important;
+  text-transform: uppercase !important;
+  color: var(--ink-dim) !important;
+  font-weight: 500 !important;
+}
+
+[data-testid="stMultiSelect"] span[data-baseweb="tag"] {
   background-color: var(--gold-lt) !important;
   border: 1px solid var(--gold) !important;
   color: var(--gold) !important;
   font-size: 0.75rem !important;
   border-radius: 2px !important;
-  font-family: 'IBM Plex Sans', sans-serif !important;
 }
 
-/* Slider */
-[data-testid="stSlider"] > div > div > div > div {
-  background-color: var(--gold) !important;
-}
-
-/* Filter bar labels */
-[data-testid="stHorizontalBlock"] label {
-  font-size: 0.65rem !important;
-  letter-spacing: 0.1em !important;
-  text-transform: uppercase !important;
-  color: var(--ink-dim) !important;
-  font-weight: 500 !important;
-  font-family: 'IBM Plex Sans', sans-serif !important;
-}
-
-/* Dataframe */
-[data-testid="stDataFrame"] {
-  border: 1px solid var(--border) !important;
+[data-testid="metric-container"] {
+  background: transparent !important;
+  border: none !important;
+  padding: 0 !important;
 }
 </style>
 """, unsafe_allow_html=True)
 
 
-# ── Constants ─────────────────────────────────────────────
+# ── Constants ──────────────────────────────────────────────────────────────────
 CATEGORY_COLORS = {
     "Chocolate & Candy":     "#8B3A2A",
     "Biscuits & Cookies":    "#A0622A",
@@ -107,7 +131,7 @@ PROTEIN_KEYWORDS = [
 ]
 
 
-# ── Data ──────────────────────────────────────────────────
+# ── Data ───────────────────────────────────────────────────────────────────────
 @st.cache_data(show_spinner="Loading data...")
 def load_data():
     df  = pd.read_csv("sugar_trap_clean_data.csv", low_memory=False)
@@ -118,89 +142,63 @@ df, opp_df = load_data()
 all_cats = sorted(df["primary_category"].unique().tolist())
 
 
-# ══════════════════════════════════════════════════════════
-# PAGE HEADER
-# ══════════════════════════════════════════════════════════
-st.markdown("""
-<div style="background:#fff;border-bottom:1px solid #DDD9CF;padding:1.8rem 3rem 1.5rem 3rem;">
-  <div style="display:flex;align-items:baseline;justify-content:space-between;flex-wrap:wrap;gap:1rem;">
-    <div>
-      <div style="font-size:0.62rem;letter-spacing:0.2em;text-transform:uppercase;
-                  color:#B8860B;margin-bottom:0.4rem;font-weight:500;">
-        Market Intelligence · Snack Category Analysis
-      </div>
-      <div style="font-family:'Playfair Display',serif;font-size:2.2rem;
-                  color:#1C1B18;line-height:1.1;">
-        The <em style="color:#B8860B;">Sugar Trap</em>
-      </div>
+# ── Sidebar ────────────────────────────────────────────────────────────────────
+with st.sidebar:
+    st.markdown("""
+    <div style="margin-bottom:1.8rem;padding-bottom:1.2rem;border-bottom:1px solid #DDD9CF;">
+      <div style="font-family:'Playfair Display',serif;font-size:1.25rem;color:#1C1B18;font-weight:600;line-height:1.2;">Sugar Trap</div>
+      <div style="font-size:0.65rem;letter-spacing:0.14em;text-transform:uppercase;color:#B8860B;margin-top:4px;">Helix CPG Partners</div>
     </div>
-    <div style="font-size:0.8rem;color:#8A8680;max-width:420px;line-height:1.65;padding-top:0.3rem;">
-      Mapping the whitespace between consumer health demand and current product supply —
-      where is the Blue Ocean in the snack aisle?
-    </div>
-  </div>
-</div>
-""", unsafe_allow_html=True)
+    """, unsafe_allow_html=True)
 
-
-# ══════════════════════════════════════════════════════════
-# FILTER BAR — replaces sidebar entirely
-# ══════════════════════════════════════════════════════════
-st.markdown("""
-<div style="background:#EFECE5;border-bottom:1px solid #DDD9CF;
-            padding:0.8rem 3rem;">
-  <div style="font-size:0.6rem;letter-spacing:0.14em;text-transform:uppercase;
-              color:#8A8680;font-weight:500;margin-bottom:0.5rem;">Filters</div>
-</div>
-""", unsafe_allow_html=True)
-
-fc1, fc2, fc3, fc4 = st.columns([3, 1.2, 1.2, 1.2])
-
-with fc1:
     selected_cats = st.multiselect(
         "Categories",
         options=all_cats,
         default=all_cats,
         key="sel_cats",
-        label_visibility="visible",
     )
-with fc2:
+
+    st.markdown("<div style='margin:1rem 0;border-top:1px solid #EFECE5;'></div>", unsafe_allow_html=True)
+
     sugar_max = st.slider(
-        "Max Sugar g/100g",
+        "Max Sugar  g/100g",
         min_value=0, max_value=100, value=100, step=5,
         key="sugar_max",
     )
-with fc3:
     protein_min = st.slider(
-        "Min Protein g/100g",
+        "Min Protein  g/100g",
         min_value=0, max_value=50, value=0, step=2,
         key="protein_min",
     )
-with fc4:
+
+    st.markdown("<div style='margin:1rem 0;border-top:1px solid #EFECE5;'></div>", unsafe_allow_html=True)
+
     sample_size = st.slider(
         "Sample size / category",
         min_value=100, max_value=800, value=400, step=100,
         key="sample_size",
     )
 
-st.markdown("<div style='height:0.5rem;'></div>", unsafe_allow_html=True)
+    st.markdown("""
+    <div style="margin-top:1.5rem;padding-top:1rem;border-top:1px solid #EFECE5;
+                font-size:0.65rem;letter-spacing:0.08em;color:#C8C4BA;line-height:1.8;">
+      SOURCE<br>Open Food Facts<br>openfoodfacts.org
+    </div>
+    """, unsafe_allow_html=True)
 
 
-# ── Guard ─────────────────────────────────────────────────
+# ── Guard ──────────────────────────────────────────────────────────────────────
 if not selected_cats:
     st.markdown("""
     <div style="padding:4rem 3rem;text-align:center;">
-      <div style="font-family:'Playfair Display',serif;font-size:1.4rem;
-                  color:#1C1B18;margin-bottom:0.5rem;">No categories selected</div>
-      <div style="font-size:0.9rem;color:#8A8680;">
-        Use the filter bar above to select at least one snack category.
-      </div>
+      <div style="font-family:'Playfair Display',serif;font-size:1.4rem;color:#1C1B18;margin-bottom:0.5rem;">No categories selected</div>
+      <div style="font-size:0.9rem;color:#8A8680;">Use the sidebar to select at least one snack category.</div>
     </div>
     """, unsafe_allow_html=True)
     st.stop()
 
 
-# ── Filter data ───────────────────────────────────────────
+# ── Filter ─────────────────────────────────────────────────────────────────────
 df_filtered = df[
     df["primary_category"].isin(selected_cats) &
     (df["sugars_100g"]   <= sugar_max) &
@@ -216,7 +214,6 @@ pct_bo  = len(blue_ocean) / max(len(df_filtered), 1) * 100
 avg_sug = df_filtered["sugars_100g"].mean()   if len(df_filtered) > 0 else 0
 avg_pro = df_filtered["proteins_100g"].mean() if len(df_filtered) > 0 else 0
 
-# Sample for scatter
 pieces = []
 for cat in selected_cats:
     chunk = df_filtered[df_filtered["primary_category"] == cat]
@@ -226,26 +223,43 @@ for cat in selected_cats:
 df_plot = pd.concat(pieces, ignore_index=True) if pieces else pd.DataFrame()
 
 
-# ══════════════════════════════════════════════════════════
-# KPI ROW
-# ══════════════════════════════════════════════════════════
+# ── Page header ────────────────────────────────────────────────────────────────
+st.markdown("""
+<div style="padding:2.5rem 3rem 1.5rem 3rem;border-bottom:1px solid #DDD9CF;">
+  <div style="font-size:0.65rem;letter-spacing:0.2em;text-transform:uppercase;
+              color:#B8860B;margin-bottom:0.5rem;font-weight:500;">
+    Market Intelligence · Snack Category Analysis
+  </div>
+  <div style="font-family:'Playfair Display',serif;font-size:2.8rem;
+              color:#1C1B18;line-height:1.1;margin-bottom:0.6rem;">
+    The <em style="color:#B8860B;">Sugar Trap</em>
+  </div>
+  <div style="font-size:0.9rem;color:#8A8680;max-width:560px;line-height:1.7;">
+    Mapping the whitespace between consumer health demand and current product supply —
+    where is the Blue Ocean in the snack aisle?
+  </div>
+</div>
+""", unsafe_allow_html=True)
+
+
+# ── KPI row ────────────────────────────────────────────────────────────────────
 st.markdown("<div style='padding:1.5rem 3rem 0 3rem;'>", unsafe_allow_html=True)
 k1, k2, k3, k4 = st.columns(4)
 
-def kpi_card(col, label, value, sub=None):
-    sub_html = f'<div style="font-size:0.78rem;color:#2D6A4F;margin-top:5px;">{sub}</div>' if sub else ""
+def kpi_card(col, label, value, sub=None, sub_color="#2D6A4F"):
+    sub_html = f'<div style="font-size:0.78rem;color:{sub_color};margin-top:5px;">{sub}</div>' if sub else ""
     with col:
         st.markdown(f"""
         <div style="background:#fff;border:1px solid #DDD9CF;border-top:2px solid #B8860B;
                     padding:1.3rem 1.5rem 1.1rem;">
-          <div style="font-size:0.62rem;letter-spacing:0.1em;text-transform:uppercase;
+          <div style="font-size:0.65rem;letter-spacing:0.1em;text-transform:uppercase;
                       color:#8A8680;margin-bottom:0.5rem;">{label}</div>
-          <div style="font-family:'Playfair Display',serif;font-size:2rem;
+          <div style="font-family:'Playfair Display',serif;font-size:2.1rem;
                       color:#1C1B18;line-height:1;">{value}</div>
           {sub_html}
         </div>""", unsafe_allow_html=True)
 
-kpi_card(k1, "Products Analysed", f"{len(df_filtered):,}")
+kpi_card(k1, "Products Analysed",      f"{len(df_filtered):,}")
 kpi_card(k2, "In Blue Ocean Quadrant", f"{len(blue_ocean):,}",
          sub=f"↑ {pct_bo:.1f}% of selection")
 kpi_card(k3, "Avg Sugar",
@@ -254,16 +268,13 @@ kpi_card(k4, "Avg Protein",
          f'{avg_pro:.1f}<span style="font-size:0.85rem;color:#8A8680;"> g/100g</span>')
 
 st.markdown("</div>", unsafe_allow_html=True)
-st.markdown("<div style='margin:1.8rem 3rem;border-top:1px solid #DDD9CF;'></div>",
-            unsafe_allow_html=True)
+st.markdown("<div style='margin:1.8rem 3rem;border-top:1px solid #DDD9CF;'></div>", unsafe_allow_html=True)
 
 
-# ══════════════════════════════════════════════════════════
-# SECTION 01 — SCATTER
-# ══════════════════════════════════════════════════════════
+# ── Section 01: Scatter ────────────────────────────────────────────────────────
 st.markdown("""
-<div style="padding:0 3rem 0.8rem 3rem;">
-  <div style="font-size:0.62rem;letter-spacing:0.16em;text-transform:uppercase;
+<div style="padding:0 3rem 0.5rem 3rem;">
+  <div style="font-size:0.65rem;letter-spacing:0.16em;text-transform:uppercase;
               color:#B8860B;font-weight:500;margin-bottom:0.3rem;">Section 01</div>
   <div style="font-family:'Playfair Display',serif;font-size:1.75rem;
               color:#1C1B18;margin-bottom:0.25rem;">Nutrient Matrix</div>
@@ -289,10 +300,8 @@ if not df_plot.empty:
             mode="markers",
             name=cat,
             marker=dict(color=color, size=5, opacity=0.65, line=dict(width=0)),
-            customdata=sub[[
-                "product_name", "sugars_100g",
-                "proteins_100g", "fat_100g", "fiber_100g"
-            ]].values.tolist(),
+            customdata=sub[["product_name","sugars_100g",
+                            "proteins_100g","fat_100g","fiber_100g"]].values.tolist(),
             hovertemplate=(
                 "<b>%{customdata[0]}</b><br>"
                 "Sugar: %{customdata[1]:.1f}g<br>"
@@ -320,18 +329,14 @@ fig.add_annotation(
     bordercolor="#B8860B", borderwidth=1, borderpad=8,
 )
 fig.update_layout(
-    xaxis=dict(
-        range=[-1, 65], gridcolor=GRID_COLOR, zerolinecolor=GRID_COLOR,
-        title="Sugar (g/100g)",
-        title_font=dict(color=FONT_COLOR, size=11, family="IBM Plex Sans"),
-        tickfont=dict(color=FONT_COLOR, size=10),
-    ),
-    yaxis=dict(
-        range=[-1, 70], gridcolor=GRID_COLOR, zerolinecolor=GRID_COLOR,
-        title="Protein (g/100g)",
-        title_font=dict(color=FONT_COLOR, size=11, family="IBM Plex Sans"),
-        tickfont=dict(color=FONT_COLOR, size=10),
-    ),
+    xaxis=dict(range=[-1,65], gridcolor=GRID_COLOR, zerolinecolor=GRID_COLOR,
+               title="Sugar (g/100g)",
+               title_font=dict(color=FONT_COLOR, size=11, family="IBM Plex Sans"),
+               tickfont=dict(color=FONT_COLOR, size=10)),
+    yaxis=dict(range=[-1,70], gridcolor=GRID_COLOR, zerolinecolor=GRID_COLOR,
+               title="Protein (g/100g)",
+               title_font=dict(color=FONT_COLOR, size=11, family="IBM Plex Sans"),
+               tickfont=dict(color=FONT_COLOR, size=10)),
     legend=dict(
         title=dict(text="CATEGORY", font=dict(size=9, color=FONT_COLOR)),
         font=dict(size=10, color=TEXT_COLOR, family="IBM Plex Sans"),
@@ -340,7 +345,8 @@ fig.update_layout(
     ),
     margin=dict(l=60, r=40, t=20, b=60),
     plot_bgcolor=PLOT_BG, paper_bgcolor=PAPER_BG,
-    height=520,
+    height=540,
+    autosize=True,
 )
 
 st.markdown("<div style='padding:0 3rem;'>", unsafe_allow_html=True)
@@ -348,7 +354,7 @@ st.plotly_chart(fig, use_container_width=True)
 st.markdown("</div>", unsafe_allow_html=True)
 
 
-# ── Key finding ───────────────────────────────────────────
+# ── Key finding — pinned to Bars & Granola to match slides ────────────────────
 bo_cat = df[
     (df["primary_category"] == "Bars & Granola") &
     (df["proteins_100g"]    >= PROTEIN_THRESHOLD) &
@@ -358,7 +364,7 @@ bo_cat = df[
 st.markdown(f"""
 <div style="margin:0.5rem 3rem 0 3rem;background:#fff;border:1px solid #DDD9CF;
             border-left:3px solid #B8860B;padding:1.5rem 2rem;">
-  <div style="font-size:0.62rem;letter-spacing:0.14em;text-transform:uppercase;
+  <div style="font-size:0.65rem;letter-spacing:0.14em;text-transform:uppercase;
               color:#B8860B;margin-bottom:0.7rem;font-weight:500;">◈ Key Finding</div>
   <div style="font-size:0.98rem;line-height:1.8;color:#4A4844;">
     The biggest market opportunity is in
@@ -377,12 +383,10 @@ st.markdown("<div style='margin:2rem 3rem;border-top:1px solid #DDD9CF;'></div>"
             unsafe_allow_html=True)
 
 
-# ══════════════════════════════════════════════════════════
-# SECTION 02 — OPPORTUNITY SCORECARD
-# ══════════════════════════════════════════════════════════
+# ── Section 02: Scorecard ──────────────────────────────────────────────────────
 st.markdown("""
-<div style="padding:0 3rem 0.8rem 3rem;">
-  <div style="font-size:0.62rem;letter-spacing:0.16em;text-transform:uppercase;
+<div style="padding:0 3rem 0.5rem 3rem;">
+  <div style="font-size:0.65rem;letter-spacing:0.16em;text-transform:uppercase;
               color:#B8860B;font-weight:500;margin-bottom:0.3rem;">Section 02</div>
   <div style="font-family:'Playfair Display',serif;font-size:1.75rem;
               color:#1C1B18;margin-bottom:0.25rem;">Opportunity Scorecard</div>
@@ -392,14 +396,15 @@ st.markdown("""
 </div>
 """, unsafe_allow_html=True)
 
-# Sort so Bars & Granola always appears at the top
-opp_sorted = opp_df.copy()
-if "Bars & Granola" in opp_sorted["Category"].values:
-    bars_row  = opp_sorted[opp_sorted["Category"] == "Bars & Granola"]
-    other_rows = opp_sorted[opp_sorted["Category"] != "Bars & Granola"].sort_values(
+# Always show Bars & Granola at the top of the scorecard
+if "Bars & Granola" in opp_df["Category"].values:
+    bars_row   = opp_df[opp_df["Category"] == "Bars & Granola"]
+    other_rows = opp_df[opp_df["Category"] != "Bars & Granola"].sort_values(
         "Opportunity Score", ascending=False
     )
     opp_sorted = pd.concat([bars_row, other_rows], ignore_index=True)
+else:
+    opp_sorted = opp_df.sort_values("Opportunity Score", ascending=False).reset_index(drop=True)
 
 cats_s   = opp_sorted["Category"].tolist()
 scores_s = opp_sorted["Opportunity Score"].tolist()
@@ -408,20 +413,15 @@ top_cat  = "Bars & Granola"
 fig_l = go.Figure()
 for i, (cat, score) in enumerate(zip(cats_s, scores_s)):
     clr = "#B8860B" if cat == top_cat else "#C8C4BA"
-    fig_l.add_shape(
-        type="line", x0=0, x1=score, y0=i, y1=i,
-        line=dict(color=clr, width=1.5),
-    )
+    fig_l.add_shape(type="line", x0=0, x1=score, y0=i, y1=i,
+                    line=dict(color=clr, width=1.5))
 fig_l.add_trace(go.Scatter(
     x=scores_s, y=cats_s,
     mode="markers+text",
     marker=dict(
         size=13,
         color=["#B8860B" if c == top_cat else "#EFECE5" for c in cats_s],
-        line=dict(
-            color=["#B8860B" if c == top_cat else "#C8C4BA" for c in cats_s],
-            width=1.5,
-        ),
+        line=dict(color=["#B8860B" if c == top_cat else "#C8C4BA" for c in cats_s], width=1.5),
     ),
     text=[f"  {s:.2f}" for s in scores_s],
     textposition="middle right",
@@ -439,17 +439,13 @@ fig_l.add_annotation(
     xanchor="left",
 )
 fig_l.update_layout(
-    xaxis=dict(
-        title="Opportunity Score", range=[0, 1.28],
-        showgrid=True, gridcolor=GRID_COLOR, zeroline=False,
-        title_font=dict(color=FONT_COLOR, size=10),
-        tickfont=dict(color=FONT_COLOR, size=10),
-    ),
-    yaxis=dict(
-        autorange="reversed",
-        tickfont=dict(size=11, color=TEXT_COLOR, family="IBM Plex Sans"),
-        showgrid=False,
-    ),
+    xaxis=dict(title="Opportunity Score", range=[0, 1.28],
+               showgrid=True, gridcolor=GRID_COLOR, zeroline=False,
+               title_font=dict(color=FONT_COLOR, size=10),
+               tickfont=dict(color=FONT_COLOR, size=10)),
+    yaxis=dict(autorange="reversed",
+               tickfont=dict(size=11, color=TEXT_COLOR, family="IBM Plex Sans"),
+               showgrid=False),
     showlegend=False,
     margin=dict(l=10, r=110, t=10, b=40),
     plot_bgcolor=PLOT_BG, paper_bgcolor=PAPER_BG,
@@ -458,55 +454,45 @@ fig_l.update_layout(
 
 st.markdown("<div style='padding:0 3rem;'>", unsafe_allow_html=True)
 ch_col, me_col = st.columns([3, 1])
-
 with ch_col:
     st.plotly_chart(fig_l, use_container_width=True)
-
 with me_col:
     st.markdown("""
-    <div style="background:#fff;border:1px solid #DDD9CF;
-                padding:1.3rem 1.4rem;margin-top:0.5rem;">
-      <div style="font-size:0.62rem;letter-spacing:0.1em;text-transform:uppercase;
+    <div style="background:#fff;border:1px solid #DDD9CF;padding:1.3rem 1.4rem;margin-top:0.5rem;">
+      <div style="font-size:0.65rem;letter-spacing:0.1em;text-transform:uppercase;
                   color:#8A8680;margin-bottom:1rem;font-weight:500;">Scoring Method</div>
       <div style="display:flex;justify-content:space-between;align-items:baseline;
-                  padding:0.5rem 0;border-bottom:1px solid #EFECE5;font-size:0.85rem;">
+                  padding:0.5rem 0;border-bottom:1px solid #EFECE5;font-size:0.88rem;">
         <span style="color:#4A4844;">Gap Size</span>
-        <span style="color:#B8860B;font-weight:600;
-                     font-family:'Playfair Display',serif;font-size:1rem;">50%</span>
+        <span style="color:#B8860B;font-weight:600;font-family:'Playfair Display',serif;">50%</span>
       </div>
       <div style="display:flex;justify-content:space-between;align-items:baseline;
-                  padding:0.5rem 0;border-bottom:1px solid #EFECE5;font-size:0.85rem;">
+                  padding:0.5rem 0;border-bottom:1px solid #EFECE5;font-size:0.88rem;">
         <span style="color:#4A4844;">Demand Proxy</span>
-        <span style="color:#B8860B;font-weight:600;
-                     font-family:'Playfair Display',serif;font-size:1rem;">30%</span>
+        <span style="color:#B8860B;font-weight:600;font-family:'Playfair Display',serif;">30%</span>
       </div>
       <div style="display:flex;justify-content:space-between;align-items:baseline;
-                  padding:0.5rem 0;font-size:0.85rem;">
+                  padding:0.5rem 0;font-size:0.88rem;">
         <span style="color:#4A4844;">Market Size</span>
-        <span style="color:#B8860B;font-weight:600;
-                     font-family:'Playfair Display',serif;font-size:1rem;">20%</span>
+        <span style="color:#B8860B;font-weight:600;font-family:'Playfair Display',serif;">20%</span>
       </div>
     </div>
     """, unsafe_allow_html=True)
 
-display_df = opp_df[[
-    "Category", "Total Products", "Blue Ocean Count", "Gap %", "Opportunity Score"
-]].copy()
+display_df = opp_sorted[["Category","Total Products","Blue Ocean Count","Gap %","Opportunity Score"]].copy()
 display_df["Gap %"]             = display_df["Gap %"].apply(lambda x: f"{x:.1f}%")
 display_df["Opportunity Score"] = display_df["Opportunity Score"].apply(lambda x: f"{x:.3f}")
-st.dataframe(display_df, use_container_width=True, hide_index=True)
+st.dataframe(display_df, use_container_width=True)
 st.markdown("</div>", unsafe_allow_html=True)
 
 st.markdown("<div style='margin:2rem 3rem;border-top:1px solid #DDD9CF;'></div>",
             unsafe_allow_html=True)
 
 
-# ══════════════════════════════════════════════════════════
-# SECTION 03 — PROTEIN SOURCES
-# ══════════════════════════════════════════════════════════
+# ── Section 03: Protein sources ────────────────────────────────────────────────
 st.markdown("""
-<div style="padding:0 3rem 0.8rem 3rem;">
-  <div style="font-size:0.62rem;letter-spacing:0.16em;text-transform:uppercase;
+<div style="padding:0 3rem 0.5rem 3rem;">
+  <div style="font-size:0.65rem;letter-spacing:0.16em;text-transform:uppercase;
               color:#B8860B;font-weight:500;margin-bottom:0.3rem;">Section 03 · Bonus</div>
   <div style="font-family:'Playfair Display',serif;font-size:1.75rem;
               color:#1C1B18;margin-bottom:0.25rem;">Protein Sources</div>
@@ -542,18 +528,12 @@ fig_b = go.Figure(go.Bar(
     hovertemplate="%{x}: %{y:,} products<extra></extra>",
 ))
 fig_b.update_layout(
-    xaxis=dict(
-        tickfont=dict(color=TEXT_COLOR, size=11, family="IBM Plex Sans"),
-        showgrid=False, zeroline=False,
-    ),
-    yaxis=dict(
-        gridcolor=GRID_COLOR,
-        tickfont=dict(color=FONT_COLOR, size=10),
-        zeroline=False,
-        title="Products",
-        title_font=dict(color=FONT_COLOR, size=10),
-    ),
-    margin=dict(l=50, r=30, t=30, b=40),
+    xaxis=dict(tickfont=dict(color=TEXT_COLOR, size=11, family="IBM Plex Sans"),
+               showgrid=False, zeroline=False),
+    yaxis=dict(gridcolor=GRID_COLOR, tickfont=dict(color=FONT_COLOR, size=10),
+               zeroline=False, title="Products",
+               title_font=dict(color=FONT_COLOR, size=10)),
+    margin=dict(l=50, r=30, t=20, b=40),
     plot_bgcolor=PLOT_BG, paper_bgcolor=PAPER_BG,
     height=320, bargap=0.4,
 )
@@ -565,15 +545,13 @@ if top_ingr:
     top3  = [k.title() for k, _ in top_ingr[:3]]
     pills = "".join([
         f'<span style="background:#D8EFE4;border:1px solid #2D6A4F;color:#2D6A4F;'
-        f'padding:0.3rem 1rem;font-size:0.82rem;font-weight:500;'
-        f'margin-right:0.5rem;">{p}</span>'
+        f'padding:0.3rem 1rem;font-size:0.82rem;font-weight:500;margin-right:0.5rem;">{p}</span>'
         for p in top3
     ])
     st.markdown(f"""
     <div style="background:#fff;border:1px solid #DDD9CF;border-top:2px solid #2D6A4F;
-                padding:1.1rem 1.5rem;display:flex;align-items:center;
-                gap:1.5rem;margin-bottom:1rem;">
-      <span style="font-size:0.62rem;letter-spacing:0.1em;text-transform:uppercase;
+                padding:1.1rem 1.5rem;display:flex;align-items:center;gap:1.5rem;margin-bottom:1rem;">
+      <span style="font-size:0.65rem;letter-spacing:0.1em;text-transform:uppercase;
                    color:#8A8680;font-weight:500;white-space:nowrap;">Top 3 Sources</span>
       <div>{pills}</div>
     </div>
@@ -583,7 +561,7 @@ st.markdown("</div>", unsafe_allow_html=True)
 st.markdown("<div style='margin:2rem 3rem;border-top:1px solid #DDD9CF;'></div>",
             unsafe_allow_html=True)
 st.markdown("""
-<div style="padding:0 3rem 3rem 3rem;font-size:0.62rem;letter-spacing:0.1em;
+<div style="padding:0 3rem 3rem 3rem;font-size:0.65rem;letter-spacing:0.1em;
             color:#C8C4BA;text-align:center;">
   HELIX CPG PARTNERS · DATA: OPEN FOOD FACTS · BUILT WITH STREAMLIT
 </div>
