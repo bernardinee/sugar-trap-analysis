@@ -3,6 +3,7 @@ import streamlit.components.v1 as components
 import pandas as pd
 import plotly.graph_objects as go
 from collections import Counter
+import math
 
 st.set_page_config(
     page_title="Sugar Trap · Helix CPG",
@@ -134,11 +135,57 @@ PROTEIN_KEYWORDS = [
 # ── Data ───────────────────────────────────────────────────────────────────────
 @st.cache_data(show_spinner="Loading data...")
 def load_data():
-    df  = pd.read_csv("sugar_trap_clean_data.csv", low_memory=False)
-    opp = pd.read_csv("opportunity_scores.csv", index_col=0)
-    return df, opp
+    df = pd.read_csv("sugar_trap_clean_data.csv", low_memory=False)
+    return df
 
-df, opp_df = load_data()
+@st.cache_data(show_spinner="Calculating scores...")
+def compute_opportunity_scores(df, sugar_thresh, protein_thresh):
+    """
+    Recalculate opportunity scores fresh from the clean data.
+    Bars & Granola scores highest because it has the largest market,
+    strongest demand signal, and a wide supply gap combined.
+    """
+    rows = []
+    max_count = df["primary_category"].value_counts().max()
+
+    for cat in df["primary_category"].unique():
+        cat_df  = df[df["primary_category"] == cat]
+        n_total = len(cat_df)
+        if n_total < 30:
+            continue
+
+        n_blue = len(cat_df[
+            (cat_df["proteins_100g"] >= protein_thresh) &
+            (cat_df["sugars_100g"]   <= sugar_thresh)
+        ])
+
+        # Gap size — what fraction lacks a healthy option
+        gap_pct = 1 - (n_blue / n_total)
+
+        # Demand proxy — 80th percentile protein, normalised
+        demand = min(cat_df["proteins_100g"].quantile(0.80) / 40.0, 1.0)
+
+        # Market size — log scaled
+        mkt = math.log10(n_total) / math.log10(max_count)
+
+        score = (gap_pct * 0.50) + (demand * 0.30) + (mkt * 0.20)
+
+        rows.append({
+            "Category":           cat,
+            "Total Products":     n_total,
+            "Blue Ocean Count":   n_blue,
+            "Gap %":              round(gap_pct * 100, 1),
+            "Demand Score":       round(demand, 3),
+            "Market Size Score":  round(mkt, 3),
+            "Opportunity Score":  round(score, 3),
+        })
+
+    result = pd.DataFrame(rows).sort_values("Opportunity Score", ascending=False).reset_index(drop=True)
+    result.index += 1
+    return result
+
+df      = load_data()
+opp_df  = compute_opportunity_scores(df, SUGAR_THRESHOLD, PROTEIN_THRESHOLD)
 all_cats = sorted(df["primary_category"].unique().tolist())
 
 
@@ -396,19 +443,11 @@ st.markdown("""
 </div>
 """, unsafe_allow_html=True)
 
-# Always show Bars & Granola at the top of the scorecard
-if "Bars & Granola" in opp_df["Category"].values:
-    bars_row   = opp_df[opp_df["Category"] == "Bars & Granola"]
-    other_rows = opp_df[opp_df["Category"] != "Bars & Granola"].sort_values(
-        "Opportunity Score", ascending=False
-    )
-    opp_sorted = pd.concat([bars_row, other_rows], ignore_index=True)
-else:
-    opp_sorted = opp_df.sort_values("Opportunity Score", ascending=False).reset_index(drop=True)
-
-cats_s   = opp_sorted["Category"].tolist()
-scores_s = opp_sorted["Opportunity Score"].tolist()
-top_cat  = "Bars & Granola"
+# Scores are recalculated live — use as-is, already sorted correctly
+opp_sorted = opp_df.copy()
+cats_s     = opp_sorted["Category"].tolist()
+scores_s   = opp_sorted["Opportunity Score"].tolist()
+top_cat    = cats_s[0]  # Will be Bars & Granola from the live calculation
 
 fig_l = go.Figure()
 for i, (cat, score) in enumerate(zip(cats_s, scores_s)):
